@@ -32,11 +32,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String token = header.substring(7);
             if (jwtService.isValid(token)
                     && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails details = userDetailsService.loadUserByUsername(jwtService.extractEmail(token));
-                var auth = new UsernamePasswordAuthenticationToken(
-                        details, null, details.getAuthorities());
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(auth);
+                try {
+                    UserDetails details = userDetailsService.loadUserByUsername(jwtService.extractEmail(token));
+                    var auth = new UsernamePasswordAuthenticationToken(
+                            details, null, details.getAuthorities());
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                } catch (org.springframework.security.core.userdetails.UsernameNotFoundException ignored) {
+                    // stale token for a deleted/inactive user → leave unauthenticated → 401
+                }
             }
         }
         chain.doFilter(request, response);

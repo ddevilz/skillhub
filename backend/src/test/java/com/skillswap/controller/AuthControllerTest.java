@@ -27,11 +27,15 @@ class AuthControllerTest {
     @Test
     void registerThenLoginThenAccessMe() throws Exception {
         String reg = body(Map.of("fullName", "Deva", "email", "deva@example.com", "password", "password1"));
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg))
+           .andExpect(status().isCreated());
 
+        String login = body(Map.of("email", "deva@example.com", "password", "password1"));
         String token = com.jayway.jsonpath.JsonPath.read(
-            mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg))
-               .andExpect(status().isCreated())
+            mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(login))
+               .andExpect(status().isOk())
                .andExpect(jsonPath("$.token").exists())
+               .andExpect(jsonPath("$.email").value("deva@example.com"))
                .andReturn().getResponse().getContentAsString(), "$.token");
 
         mvc.perform(get("/api/me").header("Authorization", "Bearer " + token))
@@ -45,7 +49,9 @@ class AuthControllerTest {
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg))
            .andExpect(status().isCreated());
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(reg))
-           .andExpect(status().isConflict());
+           .andExpect(status().isConflict())
+           .andExpect(jsonPath("$.error").value(409))
+           .andExpect(jsonPath("$.message").exists());
     }
 
     @Test

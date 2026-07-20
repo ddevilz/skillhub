@@ -13,6 +13,8 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     private ResponseEntity<Map<String, Object>> body(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(Map.of("error", status.value(), "message", message));
     }
@@ -33,5 +35,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> onBadCreds(BadCredentialsException ex) {
         return body(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> onUnexpected(Exception ex) {
+        log.error("Unhandled exception", ex);
+        return body(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
     }
 }

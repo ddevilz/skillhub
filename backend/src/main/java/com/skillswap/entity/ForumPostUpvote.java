@@ -1,6 +1,7 @@
 package com.skillswap.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDateTime;
 
@@ -17,6 +18,9 @@ public class ForumPostUpvote {
     private Long userId;
 
     @Column(nullable = false, updatable = false)
+    @ColumnDefault("CURRENT_TIMESTAMP") // mirrors V9__forums.sql DEFAULT CURRENT_TIMESTAMP; only affects
+    // Hibernate's ddl-auto=create-drop test schema (Flyway owns the real schema, ddl-auto=none there).
+    // Needed so raw-JDBC test inserts (bypassing @PrePersist) satisfy the NOT NULL column.
     private LocalDateTime createdDate;
 
     @PrePersist

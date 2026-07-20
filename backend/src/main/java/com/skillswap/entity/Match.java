@@ -1,6 +1,7 @@
 package com.skillswap.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 import java.time.LocalDateTime;
 
 @Entity
@@ -9,10 +10,10 @@ public class Match {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "user_a_id", nullable = false)
     private Long userAId;
 
-    @Column(nullable = false)
+    @Column(name = "user_b_id", nullable = false)
     private Long userBId;
 
     @Enumerated(EnumType.STRING)
@@ -20,6 +21,9 @@ public class Match {
     private MatchStatus status = MatchStatus.PENDING;
 
     @Column(nullable = false, updatable = false)
+    @ColumnDefault("CURRENT_TIMESTAMP") // mirrors V2__skills_matching.sql DEFAULT CURRENT_TIMESTAMP; only affects
+    // Hibernate's ddl-auto=create-drop test schema (Flyway owns the real schema, ddl-auto=none there).
+    // Needed so raw-JDBC test inserts (bypassing @PrePersist) satisfy the NOT NULL column.
     private LocalDateTime createdDate;
 
     @PrePersist

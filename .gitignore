@@ -1,0 +1,26 @@
+# Backend (Gradle / Java)
+backend/.gradle/
+backend/build/
+backend/bin/
+*.class
+
+# Frontend (Node / Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Env / secrets
+*.env
+.env.local
+
+# SDD scratch (progress ledger is local-only)
+.superpowers/
+
+# OS / editor
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# Local docx source (keep out of code repo if desired; remove this line to track it)
+# FinalProjectSynopsis-deva.docx

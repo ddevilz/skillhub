@@ -20,4 +20,13 @@ public class CurrentUser {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
     }
+
+    /** The authenticated user, if they hold the ADMIN role. 403 (not 404) — this is a permission tier, not a per-resource ownership check. */
+    public User requireAdmin() {
+        User u = require();
+        if (u.getRole() != com.skillswap.entity.Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required");
+        }
+        return u;
+    }
 }

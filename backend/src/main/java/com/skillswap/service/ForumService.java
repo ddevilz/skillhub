@@ -109,6 +109,32 @@ public class ForumService {
         return toDto(postRepository.findById(postId).orElseThrow());
     }
 
+    public void moderatePost(Long postId) {
+        ForumPost p = postRepository.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+        p.setModerated(true);
+        postRepository.save(p);
+    }
+
+    public void adminDeletePost(Long postId) {
+        ForumPost p = postRepository.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
+        postRepository.delete(p);
+    }
+
+    public void moderateComment(Long commentId) {
+        ForumComment c = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+        c.setModerated(true);
+        commentRepository.save(c);
+    }
+
+    public void adminDeleteComment(Long commentId) {
+        ForumComment c = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+        commentRepository.delete(c);
+    }
+
     private ForumPost findVisiblePost(Long postId) {
         ForumPost p = postRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));

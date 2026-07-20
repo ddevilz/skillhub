@@ -143,4 +143,50 @@ class ForumServiceTest {
 
         assertThat(dto.upvoteCount()).isEqualTo(1L);
     }
+
+    @Test
+    void moderatePostSetsModeratedTrue() {
+        ForumPost p = post(5L, 10L, false);
+        when(postRepo.findById(5L)).thenReturn(Optional.of(p));
+
+        service.moderatePost(5L);
+
+        assertThat(p.isModerated()).isTrue();
+        verify(postRepo).save(p);
+    }
+
+    @Test
+    void moderatePostRejectsWhenNotFound() {
+        when(postRepo.findById(5L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.moderatePost(5L)).isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void adminDeletePostRemovesAnyPostRegardlessOfOwner() {
+        ForumPost p = post(5L, 10L, false);
+        when(postRepo.findById(5L)).thenReturn(Optional.of(p));
+        service.adminDeletePost(5L);
+        verify(postRepo).delete(p);
+    }
+
+    @Test
+    void moderateCommentSetsModeratedTrue() {
+        ForumComment c = new ForumComment();
+        c.setUserId(20L);
+        when(commentRepo.findById(9L)).thenReturn(Optional.of(c));
+
+        service.moderateComment(9L);
+
+        assertThat(c.isModerated()).isTrue();
+        verify(commentRepo).save(c);
+    }
+
+    @Test
+    void adminDeleteCommentRemovesAnyCommentRegardlessOfOwner() {
+        ForumComment c = new ForumComment();
+        c.setUserId(20L);
+        when(commentRepo.findById(9L)).thenReturn(Optional.of(c));
+        service.adminDeleteComment(9L);
+        verify(commentRepo).delete(c);
+    }
 }

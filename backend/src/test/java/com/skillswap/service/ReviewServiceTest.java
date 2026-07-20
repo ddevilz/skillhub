@@ -3,6 +3,7 @@ package com.skillswap.service;
 import com.skillswap.dto.CreateReviewRequest;
 import com.skillswap.dto.RatingSummaryDto;
 import com.skillswap.dto.ReviewDto;
+import com.skillswap.entity.NotificationType;
 import com.skillswap.entity.Review;
 import com.skillswap.entity.Session;
 import com.skillswap.entity.SessionStatus;
@@ -20,7 +21,8 @@ class ReviewServiceTest {
 
     private final SessionRepository sessionRepo = mock(SessionRepository.class);
     private final ReviewRepository reviewRepo = mock(ReviewRepository.class);
-    private final ReviewService service = new ReviewService(sessionRepo, reviewRepo);
+    private final NotificationService notificationService = mock(NotificationService.class);
+    private final ReviewService service = new ReviewService(sessionRepo, reviewRepo, notificationService);
 
     private Session completedSession(Long teacher, Long learner) {
         Session s = new Session();
@@ -72,6 +74,7 @@ class ReviewServiceTest {
         assertThat(dto.reviewerUserId()).isEqualTo(10L);
         assertThat(dto.ratedUserId()).isEqualTo(20L);
         assertThat(dto.rating()).isEqualTo(4);
+        verify(notificationService).notify(eq(20L), eq(NotificationType.REVIEW), anyString());
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.skillswap.service;
 import com.skillswap.dto.MatchDto;
 import com.skillswap.dto.MatchSuggestionDto;
 import com.skillswap.entity.*;
+import com.skillswap.entity.NotificationType;
 import com.skillswap.repository.MatchProjection;
 import com.skillswap.repository.MatchRepository;
 import com.skillswap.repository.UserSkillRepository;
@@ -21,7 +22,8 @@ class MatchServiceTest {
     private final UserSkillRepository userSkillRepo = mock(UserSkillRepository.class);
     private final MatchRepository matchRepo = mock(MatchRepository.class);
     private final UserRepository userRepo = mock(UserRepository.class);
-    private final MatchService service = new MatchService(userSkillRepo, matchRepo, userRepo);
+    private final NotificationService notificationService = mock(NotificationService.class);
+    private final MatchService service = new MatchService(userSkillRepo, matchRepo, userRepo, notificationService);
 
     private MatchProjection projection(Long userId, long matched) {
         return new MatchProjection() {
@@ -89,6 +91,7 @@ class MatchServiceTest {
         assertThat(dto.status()).isEqualTo("PENDING");
         assertThat(dto.userAId()).isEqualTo(1L);
         assertThat(dto.userBId()).isEqualTo(2L);
+        verify(notificationService).notify(eq(2L), eq(NotificationType.MATCH), anyString());
     }
 
     @Test
@@ -123,6 +126,7 @@ class MatchServiceTest {
 
         MatchDto dto = service.respond(1L, 9L, "ACCEPTED");
         assertThat(dto.status()).isEqualTo("ACCEPTED");
+        verify(notificationService).notify(eq(2L), eq(NotificationType.MATCH), anyString());
     }
 
     private User activeUser(Long id) {

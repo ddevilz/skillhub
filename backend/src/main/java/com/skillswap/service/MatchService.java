@@ -4,6 +4,7 @@ import com.skillswap.dto.MatchDto;
 import com.skillswap.dto.MatchSuggestionDto;
 import com.skillswap.entity.Match;
 import com.skillswap.entity.MatchStatus;
+import com.skillswap.entity.NotificationType;
 import com.skillswap.entity.SkillType;
 import com.skillswap.entity.User;
 import com.skillswap.repository.MatchProjection;
@@ -23,12 +24,14 @@ public class MatchService {
     private final UserSkillRepository userSkillRepository;
     private final MatchRepository matchRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public MatchService(UserSkillRepository userSkillRepository, MatchRepository matchRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository, NotificationService notificationService) {
         this.userSkillRepository = userSkillRepository;
         this.matchRepository = matchRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Cacheable(value = "suggestions", key = "#userId + '-' + (#city == null ? '' : #city) + '-' + (#category == null ? '' : #category)")
@@ -55,7 +58,9 @@ public class MatchService {
         m.setUserAId(meId);
         m.setUserBId(target.getId());
         m.setStatus(MatchStatus.PENDING);
-        return toDto(matchRepository.save(m));
+        Match saved = matchRepository.save(m);
+        notificationService.notify(target.getId(), NotificationType.MATCH, "You have a new match request.");
+        return toDto(saved);
     }
 
     public MatchDto respond(Long meId, Long matchId, String status) {
@@ -63,7 +68,10 @@ public class MatchService {
         Match m = matchRepository.findByIdAndUserBId(matchId, meId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Match not found"));
         m.setStatus(newStatus);
-        return toDto(matchRepository.save(m));
+        Match saved = matchRepository.save(m);
+        notificationService.notify(m.getUserAId(), NotificationType.MATCH,
+                "Your match request was " + newStatus.name().toLowerCase() + ".");
+        return toDto(saved);
     }
 
     public List<MatchDto> myMatches(Long meId) {

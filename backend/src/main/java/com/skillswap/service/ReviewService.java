@@ -3,6 +3,7 @@ package com.skillswap.service;
 import com.skillswap.dto.CreateReviewRequest;
 import com.skillswap.dto.RatingSummaryDto;
 import com.skillswap.dto.ReviewDto;
+import com.skillswap.entity.NotificationType;
 import com.skillswap.entity.Review;
 import com.skillswap.entity.Session;
 import com.skillswap.entity.SessionStatus;
@@ -17,10 +18,13 @@ public class ReviewService {
 
     private final SessionRepository sessionRepository;
     private final ReviewRepository reviewRepository;
+    private final NotificationService notificationService;
 
-    public ReviewService(SessionRepository sessionRepository, ReviewRepository reviewRepository) {
+    public ReviewService(SessionRepository sessionRepository, ReviewRepository reviewRepository,
+                         NotificationService notificationService) {
         this.sessionRepository = sessionRepository;
         this.reviewRepository = reviewRepository;
+        this.notificationService = notificationService;
     }
 
     public ReviewDto create(Long meId, Long sessionId, CreateReviewRequest req) {
@@ -43,7 +47,9 @@ public class ReviewService {
         r.setRatedUserId(ratedUserId);
         r.setRating(req.rating());
         r.setComments(req.comments());
-        return toDto(reviewRepository.save(r));
+        Review saved = reviewRepository.save(r);
+        notificationService.notify(ratedUserId, NotificationType.REVIEW, "You received a new review.");
+        return toDto(saved);
     }
 
     public void flag(Long reviewId) {

@@ -5,6 +5,7 @@ import com.skillswap.dto.RescheduleSessionRequest;
 import com.skillswap.dto.SessionDto;
 import com.skillswap.entity.Match;
 import com.skillswap.entity.MatchStatus;
+import com.skillswap.entity.NotificationType;
 import com.skillswap.entity.Session;
 import com.skillswap.entity.SessionStatus;
 import com.skillswap.entity.Skill;
@@ -29,7 +30,9 @@ class SessionServiceTest {
     private final CreditService creditService = mock(CreditService.class);
     private final SkillRepository skillRepo = mock(SkillRepository.class);
     private final BadgeService badgeService = mock(BadgeService.class);
-    private final SessionService service = new SessionService(sessionRepo, matchRepo, creditService, skillRepo, badgeService);
+    private final NotificationService notificationService = mock(NotificationService.class);
+    private final SessionService service = new SessionService(
+            sessionRepo, matchRepo, creditService, skillRepo, badgeService, notificationService);
 
     private Match acceptedMatch(Long a, Long b) {
         Match m = new Match();
@@ -126,6 +129,7 @@ class SessionServiceTest {
 
         SessionDto dto = service.confirm(20L, 5L);
         assertThat(dto.status()).isEqualTo("CONFIRMED");
+        verify(notificationService).notify(eq(10L), eq(NotificationType.SESSION), anyString());
     }
 
     @Test
@@ -152,6 +156,7 @@ class SessionServiceTest {
         assertThat(dto.status()).isEqualTo("PENDING");
         assertThat(dto.scheduledByUserId()).isEqualTo(20L);
         assertThat(dto.sessionDate()).isEqualTo(LocalDate.of(2026, 8, 2));
+        verify(notificationService).notify(eq(10L), eq(NotificationType.SESSION), anyString());
     }
 
     @Test
@@ -241,6 +246,7 @@ class SessionServiceTest {
 
         SessionDto dto = service.cancel(20L, 5L);
         assertThat(dto.status()).isEqualTo("CANCELLED");
+        verify(notificationService).notify(eq(10L), eq(NotificationType.SESSION), anyString());
     }
 
     @Test

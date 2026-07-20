@@ -108,6 +108,14 @@ class MatchServiceTest {
     }
 
     @Test
+    void respondRejectsPendingStatus() {
+        Match m = new Match(); m.setUserAId(2L); m.setUserBId(1L);
+        when(matchRepo.findByIdAndUserBId(9L, 1L)).thenReturn(Optional.of(m));
+        assertThatThrownBy(() -> service.respond(1L, 9L, "PENDING"))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
     void respondAcceptsMatch() {
         Match m = new Match(); m.setUserAId(2L); m.setUserBId(1L);
         when(matchRepo.findByIdAndUserBId(9L, 1L)).thenReturn(Optional.of(m));

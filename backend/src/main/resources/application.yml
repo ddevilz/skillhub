@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/skillswap?createDatabaseIfNotExist=true&serverTimezone=UTC
+    username: root
+    password: root
+  jpa:
+    hibernate:
+      ddl-auto: none          # Flyway owns the schema
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+  flyway:
+    enabled: true
+jwt:
+  secret: dev-secret-change-me-please-32-bytes-minimum-000
+  expiration-ms: 86400000     # 24h
+server:
+  port: 8080

@@ -44,39 +44,6 @@ class SessionFlowTest {
                 "SELECT id FROM matches WHERE user_a_id = ? AND user_b_id = ?", Long.class, userAId, userBId);
     }
 
-    // The "test" profile disables Flyway (Hibernate create-drop builds the schema instead), so
-    // V3__seed_skills.sql never runs against this H2 instance. Reproduce its insert order here and
-    // look up the generated id, instead of hardcoding it, so "Python" plays the same role the brief
-    // describes for the real seeded catalog (V3 seeds it 4th) without depending on identity-column luck.
-    private Long seedCatalogAndGetPythonId() {
-        // Guard: this test class has two @Test methods that both need the catalog, and the
-        // cached Spring context (no @Transactional/@DirtiesContext) means the H2 schema and its
-        // rows outlive a single test method. Only seed once per context so a second call (or a
-        // sibling test class sharing the same cached context) finds Python already there instead
-        // of inserting a duplicate row and breaking the lookup below.
-        Long alreadySeeded = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM skill WHERE skill_name = ?", Long.class, "Python");
-        if (alreadySeeded == null || alreadySeeded == 0) {
-            jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                    "Guitar", "Music", "Acoustic and electric guitar");
-            jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                    "Piano", "Music", "Keyboard fundamentals");
-            jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                    "Web Development", "Technology", "HTML, CSS, JavaScript");
-            jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                    "Python", "Technology", "Python programming");
-            jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                    "Spoken English", "Languages", "Conversational English");
-            jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                    "Spanish", "Languages", "Beginner Spanish");
-            jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                    "Sketching", "Arts", "Pencil sketching");
-            jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                    "Public Speaking", "Business", "Presentation skills");
-        }
-        return jdbc.queryForObject("SELECT id FROM skill WHERE skill_name = ?", Long.class, "Python");
-    }
-
     private Long createSession(String token, Long matchId, Long teacherId, Long skillId) throws Exception {
         String body = json.writeValueAsString(Map.of(
                 "matchId", matchId, "teacherUserId", teacherId, "skillId", skillId,
@@ -95,7 +62,7 @@ class SessionFlowTest {
         Long teacherId = meId(teacherToken);
         Long learnerId = meId(learnerToken);
         Long matchId = acceptedMatch(learnerId, teacherId);
-        Long skillId = seedCatalogAndGetPythonId();
+        Long skillId = TestSkillCatalog.seedCatalogAndGetPythonId(jdbc);
 
         Long sessionId = createSession(learnerToken, matchId, teacherId, skillId);
 
@@ -132,7 +99,7 @@ class SessionFlowTest {
 
         jdbc.update("UPDATE skill_credit SET total_credits = 0 WHERE user_id = ?", learnerId);
 
-        Long skillId = seedCatalogAndGetPythonId();
+        Long skillId = TestSkillCatalog.seedCatalogAndGetPythonId(jdbc);
         String body = json.writeValueAsString(Map.of(
                 "matchId", matchId, "teacherUserId", teacherId, "skillId", skillId,
                 "sessionDate", "2026-08-01", "startTime", "10:00:00", "endTime", "11:00:00",

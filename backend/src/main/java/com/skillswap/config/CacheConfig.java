@@ -3,6 +3,7 @@ package com.skillswap.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
+import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.cache.interceptor.SimpleCacheErrorHandler;
@@ -15,7 +16,7 @@ import java.time.Duration;
 
 @Configuration
 @EnableCaching
-public class CacheConfig {
+public class CacheConfig implements CachingConfigurer {
 
     private static final Logger log = LoggerFactory.getLogger(CacheConfig.class);
 
@@ -26,11 +27,15 @@ public class CacheConfig {
                 RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(10)));
     }
 
+    @Override
+    public CacheErrorHandler errorHandler() {
+        return cacheErrorHandler();
+    }
+
     /** Swallow Redis errors so a Redis outage degrades to a DB hit instead of a 500. */
     @Bean
     public CacheErrorHandler cacheErrorHandler() {
         return new CacheErrorHandler() {
-            private final SimpleCacheErrorHandler delegate = new SimpleCacheErrorHandler();
             @Override public void handleCacheGetError(RuntimeException e, Cache cache, Object key) {
                 log.warn("Cache GET failed ({}), falling back to source: {}", cache.getName(), e.getMessage());
             }

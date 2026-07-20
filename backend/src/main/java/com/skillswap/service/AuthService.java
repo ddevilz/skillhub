@@ -52,6 +52,7 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest req) {
         User u = userRepository.findByEmail(req.email())
+                .filter(User::isActive)
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
         if (!encoder.matches(req.password(), u.getPasswordHash())) {
             throw new BadCredentialsException("Invalid email or password");

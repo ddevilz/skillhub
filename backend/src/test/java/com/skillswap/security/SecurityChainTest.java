@@ -8,6 +8,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -20,7 +21,10 @@ class SecurityChainTest {
 
     @Test
     void protectedRequestWithoutTokenReturns401() throws Exception {
-        mvc.perform(get("/api/secure-check")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/secure-check"))
+           .andExpect(status().isUnauthorized())
+           .andExpect(jsonPath("$.error").value(401))
+           .andExpect(jsonPath("$.message").exists());
     }
 
     @Test

@@ -91,4 +91,17 @@ class AuthServiceTest {
                 .isInstanceOf(BadCredentialsException.class)
                 .hasMessageContaining("Invalid email or password");
     }
+
+    @Test
+    void loginRejectsInactiveUser() {
+        User u = new User();
+        u.setEmail("deva@example.com");
+        u.setPasswordHash("hashed");
+        u.setRole(Role.USER);
+        u.setActive(false);
+        when(userRepo.findByEmail("deva@example.com")).thenReturn(Optional.of(u));
+        assertThatThrownBy(() -> service.login(new LoginRequest("deva@example.com", "password1")))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("Invalid email or password");
+    }
 }

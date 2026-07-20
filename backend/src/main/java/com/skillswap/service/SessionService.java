@@ -5,11 +5,13 @@ import com.skillswap.dto.RescheduleSessionRequest;
 import com.skillswap.dto.SessionDto;
 import com.skillswap.entity.Match;
 import com.skillswap.entity.MatchStatus;
+import com.skillswap.entity.NotificationType;
 import com.skillswap.entity.Session;
 import com.skillswap.entity.SessionMode;
 import com.skillswap.entity.SessionStatus;
 import com.skillswap.repository.MatchRepository;
 import com.skillswap.repository.SessionRepository;
+import com.skillswap.repository.SkillRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,12 +27,19 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final MatchRepository matchRepository;
     private final CreditService creditService;
+    private final SkillRepository skillRepository;
+    private final BadgeService badgeService;
+    private final NotificationService notificationService;
 
     public SessionService(SessionRepository sessionRepository, MatchRepository matchRepository,
-                          CreditService creditService) {
+                          CreditService creditService, SkillRepository skillRepository,
+                          BadgeService badgeService, NotificationService notificationService) {
         this.sessionRepository = sessionRepository;
         this.matchRepository = matchRepository;
         this.creditService = creditService;
+        this.skillRepository = skillRepository;
+        this.badgeService = badgeService;
+        this.notificationService = notificationService;
     }
 
     public SessionDto create(Long meId, CreateSessionRequest req) {
@@ -52,8 +61,13 @@ public class SessionService {
             throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "Learner has insufficient credits");
         }
 
+        if (skillRepository.findById(req.skillId()).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Skill not found");
+        }
+
         Session s = new Session();
         s.setMatchId(match.getId());
+        s.setSkillId(req.skillId());
         s.setTeacherUserId(req.teacherUserId());
         s.setLearnerUserId(learnerUserId);
         s.setScheduledByUserId(meId);
@@ -75,7 +89,9 @@ public class SessionService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Session is not pending");
         }
         s.setStatus(SessionStatus.CONFIRMED);
-        return toDto(sessionRepository.save(s));
+        Session saved = sessionRepository.save(s);
+        notificationService.notify(s.getScheduledByUserId(), NotificationType.SESSION, "Your session was confirmed.");
+        return toDto(saved);
     }
 
     public SessionDto cancel(Long meId, Long sessionId) {
@@ -84,7 +100,10 @@ public class SessionService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Session already finalized");
         }
         s.setStatus(SessionStatus.CANCELLED);
-        return toDto(sessionRepository.save(s));
+        Session saved = sessionRepository.save(s);
+        Long other = s.getTeacherUserId().equals(meId) ? s.getLearnerUserId() : s.getTeacherUserId();
+        notificationService.notify(other, NotificationType.SESSION, "Your session was cancelled.");
+        return toDto(saved);
     }
 
     public SessionDto reschedule(Long meId, Long sessionId, RescheduleSessionRequest req) {
@@ -97,7 +116,10 @@ public class SessionService {
         s.setEndTime(req.endTime());
         s.setScheduledByUserId(meId); // rescheduler proposes; the other party must reconfirm
         s.setStatus(SessionStatus.PENDING);
-        return toDto(sessionRepository.save(s));
+        Session saved = sessionRepository.save(s);
+        Long other = s.getTeacherUserId().equals(meId) ? s.getLearnerUserId() : s.getTeacherUserId();
+        notificationService.notify(other, NotificationType.SESSION, "Your session was rescheduled — please confirm the new time.");
+        return toDto(saved);
     }
 
     @Transactional
@@ -108,7 +130,9 @@ public class SessionService {
         }
         creditService.settle(s.getTeacherUserId(), s.getLearnerUserId(), sessionId);
         s.setStatus(SessionStatus.COMPLETED);
-        return toDto(sessionRepository.save(s));
+        Session saved = sessionRepository.save(s);
+        badgeService.evaluateAndAward(s.getTeacherUserId(), s.getSkillId());
+        return toDto(saved);
     }
 
     public List<SessionDto> mySessions(Long meId, String filter) {
@@ -145,7 +169,7 @@ public class SessionService {
     }
 
     private SessionDto toDto(Session s) {
-        return new SessionDto(s.getId(), s.getMatchId(), s.getTeacherUserId(), s.getLearnerUserId(),
+        return new SessionDto(s.getId(), s.getMatchId(), s.getSkillId(), s.getTeacherUserId(), s.getLearnerUserId(),
                 s.getScheduledByUserId(), s.getSessionDate(), s.getStartTime(), s.getEndTime(),
                 s.getMode() == null ? null : s.getMode().name(), s.getLocationOrLink(),
                 s.getStatus().name(), s.getCreatedDate());

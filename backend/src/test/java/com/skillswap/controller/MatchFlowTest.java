@@ -39,34 +39,10 @@ class MatchFlowTest {
         return ((Number) com.jayway.jsonpath.JsonPath.read(res, "$.id")).longValue();
     }
 
-    // The "test" profile disables Flyway (Hibernate create-drop builds the schema instead), so
-    // V3__seed_skills.sql never runs against this H2 instance. Reproduce its insert order here and
-    // look up the generated id, instead of hardcoding it, so "Python" plays the same role the brief
-    // describes for the real seeded catalog (V3 seeds it 4th) without depending on identity-column luck.
-    private Long seedCatalogAndGetPythonId() {
-        jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                "Guitar", "Music", "Acoustic and electric guitar");
-        jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                "Piano", "Music", "Keyboard fundamentals");
-        jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                "Web Development", "Technology", "HTML, CSS, JavaScript");
-        jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                "Python", "Technology", "Python programming");
-        jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                "Spoken English", "Languages", "Conversational English");
-        jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                "Spanish", "Languages", "Beginner Spanish");
-        jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                "Sketching", "Arts", "Pencil sketching");
-        jdbc.update("INSERT INTO skill(skill_name, category, description) VALUES (?,?,?)",
-                "Public Speaking", "Business", "Presentation skills");
-        return jdbc.queryForObject("SELECT id FROM skill WHERE skill_name = ?", Long.class, "Python");
-    }
-
     @Test
     void learnerSeesTeacherAndCanRequestMatch() throws Exception {
         // Seeded skill catalog (V3): Python is the 4th skill. Learner wants it, teacher teaches it.
-        Long pythonId = seedCatalogAndGetPythonId();
+        Long pythonId = TestSkillCatalog.seedCatalogAndGetPythonId(jdbc);
         String learner = register("learner@example.com");
         String teacher = register("teacher@example.com");
         addSkill(learner, pythonId, "WANT_TO_LEARN");

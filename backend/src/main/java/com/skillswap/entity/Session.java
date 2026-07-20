@@ -16,6 +16,9 @@ public class Session {
     private Long matchId;
 
     @Column(nullable = false)
+    private Long skillId;
+
+    @Column(nullable = false)
     private Long teacherUserId;
 
     @Column(nullable = false)
@@ -53,6 +56,8 @@ public class Session {
     public Long getId() { return id; }
     public Long getMatchId() { return matchId; }
     public void setMatchId(Long v) { this.matchId = v; }
+    public Long getSkillId() { return skillId; }
+    public void setSkillId(Long v) { this.skillId = v; }
     public Long getTeacherUserId() { return teacherUserId; }
     public void setTeacherUserId(Long v) { this.teacherUserId = v; }
     public Long getLearnerUserId() { return learnerUserId; }

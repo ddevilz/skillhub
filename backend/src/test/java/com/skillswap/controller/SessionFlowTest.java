@@ -44,9 +44,9 @@ class SessionFlowTest {
                 "SELECT id FROM matches WHERE user_a_id = ? AND user_b_id = ?", Long.class, userAId, userBId);
     }
 
-    private Long createSession(String token, Long matchId, Long teacherId) throws Exception {
+    private Long createSession(String token, Long matchId, Long teacherId, Long skillId) throws Exception {
         String body = json.writeValueAsString(Map.of(
-                "matchId", matchId, "teacherUserId", teacherId,
+                "matchId", matchId, "teacherUserId", teacherId, "skillId", skillId,
                 "sessionDate", "2026-08-01", "startTime", "10:00:00", "endTime", "11:00:00",
                 "mode", "ONLINE", "locationOrLink", "https://meet.example/abc"));
         String res = mvc.perform(post("/api/sessions").header("Authorization", "Bearer " + token)
@@ -62,8 +62,9 @@ class SessionFlowTest {
         Long teacherId = meId(teacherToken);
         Long learnerId = meId(learnerToken);
         Long matchId = acceptedMatch(learnerId, teacherId);
+        Long skillId = TestSkillCatalog.seedCatalogAndGetPythonId(jdbc);
 
-        Long sessionId = createSession(learnerToken, matchId, teacherId);
+        Long sessionId = createSession(learnerToken, matchId, teacherId, skillId);
 
         mvc.perform(put("/api/sessions/{id}/confirm", sessionId).header("Authorization", "Bearer " + teacherToken))
                 .andExpect(status().isOk())
@@ -98,8 +99,9 @@ class SessionFlowTest {
 
         jdbc.update("UPDATE skill_credit SET total_credits = 0 WHERE user_id = ?", learnerId);
 
+        Long skillId = TestSkillCatalog.seedCatalogAndGetPythonId(jdbc);
         String body = json.writeValueAsString(Map.of(
-                "matchId", matchId, "teacherUserId", teacherId,
+                "matchId", matchId, "teacherUserId", teacherId, "skillId", skillId,
                 "sessionDate", "2026-08-01", "startTime", "10:00:00", "endTime", "11:00:00",
                 "mode", "ONLINE"));
         mvc.perform(post("/api/sessions").header("Authorization", "Bearer " + learnerToken)

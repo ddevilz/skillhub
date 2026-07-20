@@ -9,6 +9,7 @@ import java.time.LocalTime;
 public record CreateSessionRequest(
         @NotNull Long matchId,
         @NotNull Long teacherUserId,
+        @NotNull Long skillId,
         @NotNull LocalDate sessionDate,
         @NotNull LocalTime startTime,
         @NotNull LocalTime endTime,

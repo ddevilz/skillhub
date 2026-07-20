@@ -181,6 +181,29 @@ class SessionServiceTest {
     }
 
     @Test
+    void completeCallsBadgeEvaluationAfterPersistingCompletedStatus() {
+        Session s = new Session();
+        s.setTeacherUserId(10L); s.setLearnerUserId(20L); s.setSkillId(4L);
+        s.setStatus(SessionStatus.CONFIRMED);
+        when(sessionRepo.findById(5L)).thenReturn(Optional.of(s));
+        when(sessionRepo.save(any(Session.class))).thenAnswer(i -> i.getArgument(0));
+
+        // Capture the session's status AT THE MOMENT evaluateAndAward is invoked —
+        // this is what actually catches the off-by-one bug (a plain verify() call
+        // ordering check would not, since Mockito's default verify doesn't inspect
+        // mutable-object state at call time).
+        java.util.concurrent.atomic.AtomicReference<SessionStatus> statusAtBadgeCall = new java.util.concurrent.atomic.AtomicReference<>();
+        doAnswer(invocation -> {
+            statusAtBadgeCall.set(s.getStatus());
+            return null;
+        }).when(badgeService).evaluateAndAward(10L, 4L);
+
+        service.complete(20L, 5L);
+
+        assertThat(statusAtBadgeCall.get()).isEqualTo(SessionStatus.COMPLETED);
+    }
+
+    @Test
     void mySessionsFiltersByStatus() {
         Session pending = new Session();
         pending.setTeacherUserId(10L); pending.setLearnerUserId(20L);

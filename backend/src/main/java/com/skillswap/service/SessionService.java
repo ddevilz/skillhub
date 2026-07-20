@@ -118,9 +118,10 @@ public class SessionService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only confirmed sessions can be completed");
         }
         creditService.settle(s.getTeacherUserId(), s.getLearnerUserId(), sessionId);
-        badgeService.evaluateAndAward(s.getTeacherUserId(), s.getSkillId());
         s.setStatus(SessionStatus.COMPLETED);
-        return toDto(sessionRepository.save(s));
+        Session saved = sessionRepository.save(s);
+        badgeService.evaluateAndAward(s.getTeacherUserId(), s.getSkillId());
+        return toDto(saved);
     }
 
     public List<SessionDto> mySessions(Long meId, String filter) {

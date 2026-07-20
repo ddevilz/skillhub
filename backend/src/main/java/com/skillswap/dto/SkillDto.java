@@ -1,3 +1,3 @@
 package com.skillswap.dto;
 
-public record SkillDto(Long id, String skillName, String category, String description) {}
+public record SkillDto(Long id, String skillName, String category, String description) implements java.io.Serializable {}

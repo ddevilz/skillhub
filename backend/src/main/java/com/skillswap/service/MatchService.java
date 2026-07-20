@@ -10,6 +10,7 @@ import com.skillswap.repository.MatchProjection;
 import com.skillswap.repository.MatchRepository;
 import com.skillswap.repository.UserRepository;
 import com.skillswap.repository.UserSkillRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,6 +31,7 @@ public class MatchService {
         this.userRepository = userRepository;
     }
 
+    @Cacheable(value = "suggestions", key = "#userId + '-' + (#city == null ? '' : #city) + '-' + (#category == null ? '' : #category)")
     public List<MatchSuggestionDto> suggestions(Long userId, String city, String category) {
         long wanted = userSkillRepository.countByUserIdAndSkillType(userId, SkillType.WANT_TO_LEARN);
         List<MatchProjection> rows = userSkillRepository.findSuggestions(

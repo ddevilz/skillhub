@@ -11,6 +11,12 @@ spring:
       hibernate.format_sql: true
   flyway:
     enabled: true
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 jwt:
   secret: dev-secret-change-me-please-32-bytes-minimum-000
   expiration-ms: 86400000     # 24h

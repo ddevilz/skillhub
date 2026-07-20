@@ -10,6 +10,8 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
   flyway:
     enabled: false
+  cache:
+    type: simple
 jwt:
   secret: test-secret-test-secret-test-secret-32bytes
   expiration-ms: 3600000

@@ -8,6 +8,8 @@ import com.skillswap.entity.SkillType;
 import com.skillswap.entity.UserSkill;
 import com.skillswap.repository.SkillRepository;
 import com.skillswap.repository.UserSkillRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -27,12 +29,14 @@ public class SkillService {
         this.userSkillRepository = userSkillRepository;
     }
 
+    @Cacheable("skills")
     public List<SkillDto> catalog() {
         return skillRepository.findAll().stream()
                 .map(s -> new SkillDto(s.getId(), s.getSkillName(), s.getCategory(), s.getDescription()))
                 .toList();
     }
 
+    @Cacheable("categories")
     public List<String> categories() {
         return skillRepository.findDistinctCategories();
     }
@@ -45,6 +49,7 @@ public class SkillService {
                 .toList();
     }
 
+    @CacheEvict(value = "suggestions", allEntries = true)
     public UserSkillDto add(Long userId, AddUserSkillRequest req) {
         SkillType type = parseType(req.skillType());
         Skill skill = skillRepository.findById(req.skillId())
@@ -61,6 +66,7 @@ public class SkillService {
         return toDto(userSkillRepository.save(us), skill);
     }
 
+    @CacheEvict(value = "suggestions", allEntries = true)
     public void remove(Long userId, Long userSkillId) {
         UserSkill us = userSkillRepository.findByIdAndUserId(userSkillId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Skill entry not found"));

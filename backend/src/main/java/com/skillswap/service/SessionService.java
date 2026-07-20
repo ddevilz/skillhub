@@ -12,6 +12,7 @@ import com.skillswap.repository.MatchRepository;
 import com.skillswap.repository.SessionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -99,6 +100,7 @@ public class SessionService {
         return toDto(sessionRepository.save(s));
     }
 
+    @Transactional
     public SessionDto complete(Long meId, Long sessionId) {
         Session s = requireParticipant(meId, sessionId);
         if (s.getStatus() != SessionStatus.CONFIRMED) {

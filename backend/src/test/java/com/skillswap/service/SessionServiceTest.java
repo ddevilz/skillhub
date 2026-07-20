@@ -181,4 +181,45 @@ class SessionServiceTest {
         assertThat(service.mySessions(10L, "cancelled")).hasSize(1);
         assertThat(service.mySessions(10L, "past")).isEmpty();
     }
+
+    @Test
+    void confirmRejectsNonParticipant() {
+        Session s = new Session();
+        s.setTeacherUserId(10L); s.setLearnerUserId(20L); s.setScheduledByUserId(10L);
+        s.setStatus(SessionStatus.PENDING);
+        when(sessionRepo.findById(5L)).thenReturn(Optional.of(s));
+        assertThatThrownBy(() -> service.confirm(999L, 5L)).isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void cancelSucceedsFromPending() {
+        Session s = new Session();
+        s.setTeacherUserId(10L); s.setLearnerUserId(20L); s.setScheduledByUserId(10L);
+        s.setStatus(SessionStatus.PENDING);
+        when(sessionRepo.findById(5L)).thenReturn(Optional.of(s));
+        when(sessionRepo.save(any(Session.class))).thenAnswer(i -> i.getArgument(0));
+
+        SessionDto dto = service.cancel(20L, 5L);
+        assertThat(dto.status()).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    void confirmRejectsWhenAlreadyFinalized() {
+        Session s = new Session();
+        s.setTeacherUserId(10L); s.setLearnerUserId(20L); s.setScheduledByUserId(10L);
+        s.setStatus(SessionStatus.CANCELLED);
+        when(sessionRepo.findById(5L)).thenReturn(Optional.of(s));
+        assertThatThrownBy(() -> service.confirm(20L, 5L)).isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void rescheduleRejectsWhenAlreadyFinalized() {
+        Session s = new Session();
+        s.setTeacherUserId(10L); s.setLearnerUserId(20L); s.setScheduledByUserId(10L);
+        s.setStatus(SessionStatus.COMPLETED);
+        when(sessionRepo.findById(5L)).thenReturn(Optional.of(s));
+        RescheduleSessionRequest req = new RescheduleSessionRequest(
+                LocalDate.of(2026, 8, 2), LocalTime.of(9, 0), LocalTime.of(10, 0));
+        assertThatThrownBy(() -> service.reschedule(10L, 5L, req)).isInstanceOf(ResponseStatusException.class);
+    }
 }

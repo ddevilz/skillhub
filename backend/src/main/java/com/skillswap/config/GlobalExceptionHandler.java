@@ -42,4 +42,9 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception", ex);
         return body(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
     }
+
+    @org.springframework.web.bind.annotation.ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> onResponseStatus(org.springframework.web.server.ResponseStatusException ex) {
+        return body(HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason());
+    }
 }

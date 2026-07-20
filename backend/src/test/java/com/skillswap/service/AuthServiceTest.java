@@ -53,6 +53,13 @@ class AuthServiceTest {
         verify(creditRepo).save(credit.capture());
         assertThat(credit.getValue().getTotalCredits()).isEqualTo(10);
         assertThat(credit.getValue().getUserId()).isEqualTo(1L);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepo).save(userCaptor.capture());
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getPasswordHash()).isEqualTo("hashed");   // encoder.encode(...) stub returns "hashed", NOT the raw password
+        assertThat(savedUser.getRole()).isEqualTo(Role.USER);
+        assertThat(savedUser.isActive()).isTrue();
     }
 
     @Test
@@ -73,6 +80,15 @@ class AuthServiceTest {
         when(encoder.matches("wrong", "hashed")).thenReturn(false);
 
         assertThatThrownBy(() -> service.login(new LoginRequest("deva@example.com", "wrong")))
-                .isInstanceOf(BadCredentialsException.class);
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("Invalid email or password");
+    }
+
+    @Test
+    void loginRejectsUnknownEmail() {
+        when(userRepo.findByEmail("ghost@example.com")).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.login(new LoginRequest("ghost@example.com", "whatever")))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("Invalid email or password");
     }
 }

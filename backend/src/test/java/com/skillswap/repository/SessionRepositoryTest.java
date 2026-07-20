@@ -40,6 +40,7 @@ class SessionRepositoryTest {
 
         Session s = new Session();
         s.setMatchId(matchId);
+        s.setSkillId(1L);
         s.setTeacherUserId(teacher);
         s.setLearnerUserId(learner);
         s.setScheduledByUserId(learner);

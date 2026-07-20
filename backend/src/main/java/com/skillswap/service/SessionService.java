@@ -10,6 +10,7 @@ import com.skillswap.entity.SessionMode;
 import com.skillswap.entity.SessionStatus;
 import com.skillswap.repository.MatchRepository;
 import com.skillswap.repository.SessionRepository;
+import com.skillswap.repository.SkillRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,12 +26,17 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final MatchRepository matchRepository;
     private final CreditService creditService;
+    private final SkillRepository skillRepository;
+    private final BadgeService badgeService;
 
     public SessionService(SessionRepository sessionRepository, MatchRepository matchRepository,
-                          CreditService creditService) {
+                          CreditService creditService, SkillRepository skillRepository,
+                          BadgeService badgeService) {
         this.sessionRepository = sessionRepository;
         this.matchRepository = matchRepository;
         this.creditService = creditService;
+        this.skillRepository = skillRepository;
+        this.badgeService = badgeService;
     }
 
     public SessionDto create(Long meId, CreateSessionRequest req) {
@@ -52,8 +58,13 @@ public class SessionService {
             throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "Learner has insufficient credits");
         }
 
+        if (skillRepository.findById(req.skillId()).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Skill not found");
+        }
+
         Session s = new Session();
         s.setMatchId(match.getId());
+        s.setSkillId(req.skillId());
         s.setTeacherUserId(req.teacherUserId());
         s.setLearnerUserId(learnerUserId);
         s.setScheduledByUserId(meId);
@@ -107,6 +118,7 @@ public class SessionService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only confirmed sessions can be completed");
         }
         creditService.settle(s.getTeacherUserId(), s.getLearnerUserId(), sessionId);
+        badgeService.evaluateAndAward(s.getTeacherUserId(), s.getSkillId());
         s.setStatus(SessionStatus.COMPLETED);
         return toDto(sessionRepository.save(s));
     }
@@ -145,7 +157,7 @@ public class SessionService {
     }
 
     private SessionDto toDto(Session s) {
-        return new SessionDto(s.getId(), s.getMatchId(), s.getTeacherUserId(), s.getLearnerUserId(),
+        return new SessionDto(s.getId(), s.getMatchId(), s.getSkillId(), s.getTeacherUserId(), s.getLearnerUserId(),
                 s.getScheduledByUserId(), s.getSessionDate(), s.getStartTime(), s.getEndTime(),
                 s.getMode() == null ? null : s.getMode().name(), s.getLocationOrLink(),
                 s.getStatus().name(), s.getCreatedDate());

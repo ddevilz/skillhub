@@ -46,7 +46,7 @@ class SessionFlowTest {
 
     private Long createSession(String token, Long matchId, Long teacherId) throws Exception {
         String body = json.writeValueAsString(Map.of(
-                "matchId", matchId, "teacherUserId", teacherId,
+                "matchId", matchId, "teacherUserId", teacherId, "skillId", 4,
                 "sessionDate", "2026-08-01", "startTime", "10:00:00", "endTime", "11:00:00",
                 "mode", "ONLINE", "locationOrLink", "https://meet.example/abc"));
         String res = mvc.perform(post("/api/sessions").header("Authorization", "Bearer " + token)
@@ -99,7 +99,7 @@ class SessionFlowTest {
         jdbc.update("UPDATE skill_credit SET total_credits = 0 WHERE user_id = ?", learnerId);
 
         String body = json.writeValueAsString(Map.of(
-                "matchId", matchId, "teacherUserId", teacherId,
+                "matchId", matchId, "teacherUserId", teacherId, "skillId", 4,
                 "sessionDate", "2026-08-01", "startTime", "10:00:00", "endTime", "11:00:00",
                 "mode", "ONLINE"));
         mvc.perform(post("/api/sessions").header("Authorization", "Bearer " + learnerToken)

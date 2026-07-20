@@ -7,8 +7,10 @@ import com.skillswap.entity.Match;
 import com.skillswap.entity.MatchStatus;
 import com.skillswap.entity.Session;
 import com.skillswap.entity.SessionStatus;
+import com.skillswap.entity.Skill;
 import com.skillswap.repository.MatchRepository;
 import com.skillswap.repository.SessionRepository;
+import com.skillswap.repository.SkillRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -25,7 +27,9 @@ class SessionServiceTest {
     private final SessionRepository sessionRepo = mock(SessionRepository.class);
     private final MatchRepository matchRepo = mock(MatchRepository.class);
     private final CreditService creditService = mock(CreditService.class);
-    private final SessionService service = new SessionService(sessionRepo, matchRepo, creditService);
+    private final SkillRepository skillRepo = mock(SkillRepository.class);
+    private final BadgeService badgeService = mock(BadgeService.class);
+    private final SessionService service = new SessionService(sessionRepo, matchRepo, creditService, skillRepo, badgeService);
 
     private Match acceptedMatch(Long a, Long b) {
         Match m = new Match();
@@ -36,7 +40,7 @@ class SessionServiceTest {
     }
 
     private CreateSessionRequest req(Long matchId, Long teacherId) {
-        return new CreateSessionRequest(matchId, teacherId, LocalDate.of(2026, 8, 1),
+        return new CreateSessionRequest(matchId, teacherId, 4L, LocalDate.of(2026, 8, 1),
                 LocalTime.of(10, 0), LocalTime.of(11, 0), "ONLINE", "https://meet.example/abc");
     }
 
@@ -82,6 +86,7 @@ class SessionServiceTest {
     void createPersistsPendingSessionWithCorrectRoles() {
         when(matchRepo.findById(1L)).thenReturn(Optional.of(acceptedMatch(10L, 20L)));
         when(creditService.canAfford(20L)).thenReturn(true);
+        when(skillRepo.findById(4L)).thenReturn(Optional.of(new Skill()));
         when(sessionRepo.save(any(Session.class))).thenAnswer(i -> i.getArgument(0));
 
         SessionDto dto = service.create(10L, req(1L, 10L));
@@ -90,6 +95,16 @@ class SessionServiceTest {
         assertThat(dto.learnerUserId()).isEqualTo(20L);
         assertThat(dto.scheduledByUserId()).isEqualTo(10L);
         assertThat(dto.status()).isEqualTo("PENDING");
+        assertThat(dto.skillId()).isEqualTo(4L);
+    }
+
+    @Test
+    void createRejectsWhenSkillNotFound() {
+        when(matchRepo.findById(1L)).thenReturn(Optional.of(acceptedMatch(10L, 20L)));
+        when(creditService.canAfford(20L)).thenReturn(true);
+        when(skillRepo.findById(4L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.create(10L, req(1L, 10L)))
+                .isInstanceOf(ResponseStatusException.class);
     }
 
     @Test
@@ -154,12 +169,14 @@ class SessionServiceTest {
         Session s = new Session();
         s.setTeacherUserId(10L); s.setLearnerUserId(20L); s.setScheduledByUserId(10L);
         s.setStatus(SessionStatus.CONFIRMED);
+        s.setSkillId(4L);
         when(sessionRepo.findById(5L)).thenReturn(Optional.of(s));
         when(sessionRepo.save(any(Session.class))).thenAnswer(i -> i.getArgument(0));
 
         SessionDto dto = service.complete(20L, 5L);
 
         verify(creditService).settle(10L, 20L, 5L);
+        verify(badgeService).evaluateAndAward(10L, 4L);
         assertThat(dto.status()).isEqualTo("COMPLETED");
     }
 

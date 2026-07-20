@@ -46,10 +46,10 @@ class ReviewFlowTest {
         // ddl-auto=create-drop) has no DB-level default for that NOT NULL column, so a raw-JDBC insert
         // bypassing @PrePersist must set it directly. Session.java is a frozen Plan 3 file, left untouched.
         jdbc.update("""
-            INSERT INTO sessions(match_id, teacher_user_id, learner_user_id, scheduled_by_user_id,
+            INSERT INTO sessions(match_id, skill_id, teacher_user_id, learner_user_id, scheduled_by_user_id,
                                  session_date, start_time, end_time, mode, status, created_date)
-            VALUES (?,?,?,?,?,?,?,?,?,?)
-            """, matchId, teacherId, learnerId, learnerId,
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            """, matchId, 1L, teacherId, learnerId, learnerId,
                 java.sql.Date.valueOf("2026-08-01"), java.sql.Time.valueOf("10:00:00"),
                 java.sql.Time.valueOf("11:00:00"), "ONLINE", "COMPLETED",
                 java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()));

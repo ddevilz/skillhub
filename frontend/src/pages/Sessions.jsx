@@ -5,6 +5,18 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function sortSessions(list) {
   return [...list].sort((a, b) => {
@@ -44,6 +56,81 @@ export default function Sessions() {
       }).catch(() => {});
     });
   }, [sessions, user]);
+
+  const [matches, setMatches] = useState([]);
+  const [newOpen, setNewOpen] = useState(false);
+  const [newForm, setNewForm] = useState({
+    matchId: '', teacherUserId: '', skillId: '', sessionDate: '', startTime: '', endTime: '',
+    mode: 'ONLINE', locationOrLink: '',
+  });
+  const [newError, setNewError] = useState('');
+
+  const [rescheduleTarget, setRescheduleTarget] = useState(null);
+  const [rescheduleForm, setRescheduleForm] = useState({ sessionDate: '', startTime: '', endTime: '' });
+  const [rescheduleError, setRescheduleError] = useState('');
+
+  useEffect(() => {
+    api.get('/matches').then((res) => setMatches(res.data.filter((m) => m.status === 'ACCEPTED'))).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const matchOtherIds = matches.map((m) => (m.userAId === user.id ? m.userBId : m.userAId));
+    const otherIds = new Set(matchOtherIds.filter((id) => !(id in profiles)));
+    otherIds.forEach((id) => {
+      api.get(`/users/${id}`).then((res) => {
+        setProfiles((prev) => ({ ...prev, [id]: res.data }));
+      }).catch(() => {});
+    });
+  }, [matches, user]);
+
+  const selectedMatch = matches.find((m) => String(m.id) === newForm.matchId);
+  const selectedMatchOtherId = selectedMatch && user
+    ? (selectedMatch.userAId === user.id ? selectedMatch.userBId : selectedMatch.userAId)
+    : null;
+  const selectedMatchOtherName = selectedMatchOtherId != null
+    ? (profiles[selectedMatchOtherId]?.fullName ?? `User #${selectedMatchOtherId}`)
+    : null;
+
+  async function createSession(e) {
+    e.preventDefault();
+    setNewError('');
+    try {
+      await api.post('/sessions', {
+        matchId: Number(newForm.matchId),
+        teacherUserId: Number(newForm.teacherUserId),
+        skillId: Number(newForm.skillId),
+        sessionDate: newForm.sessionDate,
+        startTime: newForm.startTime,
+        endTime: newForm.endTime,
+        mode: newForm.mode,
+        locationOrLink: newForm.locationOrLink || undefined,
+      });
+      setNewOpen(false);
+      setNewForm({ matchId: '', teacherUserId: '', skillId: '', sessionDate: '', startTime: '', endTime: '', mode: 'ONLINE', locationOrLink: '' });
+      loadSessions();
+    } catch (err) {
+      setNewError(err.response?.data?.message ?? 'Could not create session');
+    }
+  }
+
+  function openReschedule(s) {
+    setRescheduleTarget(s);
+    setRescheduleForm({ sessionDate: s.sessionDate, startTime: s.startTime.slice(0, 5), endTime: s.endTime.slice(0, 5) });
+    setRescheduleError('');
+  }
+
+  async function submitReschedule(e) {
+    e.preventDefault();
+    setRescheduleError('');
+    try {
+      await api.put(`/sessions/${rescheduleTarget.id}/reschedule`, rescheduleForm);
+      setRescheduleTarget(null);
+      loadSessions();
+    } catch (err) {
+      setRescheduleError(err.response?.data?.message ?? 'Could not reschedule session');
+    }
+  }
 
   async function runAction(sessionId, action) {
     setError('');
@@ -96,6 +183,7 @@ export default function Sessions() {
           <div className="flex gap-2">
             {canConfirm && <Button size="sm" onClick={() => runAction(s.id, 'confirm')}>Confirm</Button>}
             {canComplete && <Button size="sm" onClick={() => runAction(s.id, 'complete')}>Complete</Button>}
+            {canCancel && <Button size="sm" variant="outline" onClick={() => openReschedule(s)}>Reschedule</Button>}
             {canCancel && <Button size="sm" variant="outline" onClick={() => runAction(s.id, 'cancel')}>Cancel</Button>}
           </div>
         </CardContent>
@@ -114,7 +202,130 @@ export default function Sessions() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Sessions</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Sessions</h1>
+        <Dialog open={newOpen} onOpenChange={setNewOpen}>
+          <DialogTrigger asChild>
+            <Button>New Session</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <form onSubmit={createSession} className="space-y-4">
+              <DialogHeader>
+                <DialogTitle>Schedule a session</DialogTitle>
+                <DialogDescription>Pick an accepted match, who's teaching, and a time.</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-2">
+                <Label htmlFor="match-select">With</Label>
+                <Select
+                  value={newForm.matchId}
+                  onValueChange={(v) => setNewForm({ ...newForm, matchId: v, teacherUserId: '' })}
+                >
+                  <SelectTrigger id="match-select"><SelectValue placeholder="Choose a match" /></SelectTrigger>
+                  <SelectContent>
+                    {matches.map((m) => {
+                      const otherId = user && m.userAId === user.id ? m.userBId : m.userAId;
+                      const name = profiles[otherId]?.fullName ?? `User #${otherId}`;
+                      return <SelectItem key={m.id} value={String(m.id)}>{name}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="teacher-select">Who teaches?</Label>
+                <Select
+                  value={newForm.teacherUserId}
+                  onValueChange={(v) => setNewForm({ ...newForm, teacherUserId: v })}
+                  disabled={!selectedMatch}
+                >
+                  <SelectTrigger id="teacher-select"><SelectValue placeholder="Choose who teaches" /></SelectTrigger>
+                  <SelectContent>
+                    {user && <SelectItem value={String(user.id)}>You</SelectItem>}
+                    {selectedMatchOtherId != null && (
+                      <SelectItem value={String(selectedMatchOtherId)}>{selectedMatchOtherName}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="skill-select">Skill</Label>
+                <Select value={newForm.skillId} onValueChange={(v) => setNewForm({ ...newForm, skillId: v })}>
+                  <SelectTrigger id="skill-select"><SelectValue placeholder="Choose a skill" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(skillsById).map(([id, name]) => (
+                      <SelectItem key={id} value={id}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="session-date">Date</Label>
+                  <Input
+                    id="session-date"
+                    type="date"
+                    value={newForm.sessionDate}
+                    onChange={(e) => setNewForm({ ...newForm, sessionDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="start-time">Start time</Label>
+                  <Input
+                    id="start-time"
+                    type="time"
+                    value={newForm.startTime}
+                    onChange={(e) => setNewForm({ ...newForm, startTime: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="end-time">End time</Label>
+                  <Input
+                    id="end-time"
+                    type="time"
+                    value={newForm.endTime}
+                    onChange={(e) => setNewForm({ ...newForm, endTime: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mode-select">Mode</Label>
+                <Select value={newForm.mode} onValueChange={(v) => setNewForm({ ...newForm, mode: v })}>
+                  <SelectTrigger id="mode-select"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ONLINE">Online</SelectItem>
+                    <SelectItem value="OFFLINE">Offline</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location-link">Location / link</Label>
+                <Input
+                  id="location-link"
+                  value={newForm.locationOrLink}
+                  onChange={(e) => setNewForm({ ...newForm, locationOrLink: e.target.value })}
+                  placeholder="Zoom/Meet link, or leave blank for in-person"
+                />
+              </div>
+
+              {newError && <p role="alert" className="text-sm text-destructive">{newError}</p>}
+
+              <DialogFooter>
+                <Button
+                  type="submit"
+                  disabled={!newForm.matchId || !newForm.teacherUserId || !newForm.skillId || !newForm.sessionDate || !newForm.startTime || !newForm.endTime}
+                >
+                  Create
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
       <Tabs defaultValue="upcoming">
@@ -137,6 +348,49 @@ export default function Sessions() {
           <SessionList list={sessions} emptyText="No sessions yet." />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={rescheduleTarget != null} onOpenChange={(open) => !open && setRescheduleTarget(null)}>
+        <DialogContent>
+          <form onSubmit={submitReschedule} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle>Reschedule session</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="resched-date">Date</Label>
+                <Input
+                  id="resched-date"
+                  type="date"
+                  value={rescheduleForm.sessionDate}
+                  onChange={(e) => setRescheduleForm({ ...rescheduleForm, sessionDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="resched-start">Start time</Label>
+                <Input
+                  id="resched-start"
+                  type="time"
+                  value={rescheduleForm.startTime}
+                  onChange={(e) => setRescheduleForm({ ...rescheduleForm, startTime: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="resched-end">End time</Label>
+                <Input
+                  id="resched-end"
+                  type="time"
+                  value={rescheduleForm.endTime}
+                  onChange={(e) => setRescheduleForm({ ...rescheduleForm, endTime: e.target.value })}
+                />
+              </div>
+            </div>
+            {rescheduleError && <p role="alert" className="text-sm text-destructive">{rescheduleError}</p>}
+            <DialogFooter>
+              <Button type="submit">Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

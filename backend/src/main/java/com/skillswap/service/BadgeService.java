@@ -5,7 +5,11 @@ import com.skillswap.entity.SessionStatus;
 import com.skillswap.entity.SkillBadge;
 import com.skillswap.repository.SessionRepository;
 import com.skillswap.repository.SkillBadgeRepository;
+import com.skillswap.repository.UserRepository;
+import com.skillswap.repository.SkillRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -19,10 +23,15 @@ public class BadgeService {
 
     private final SessionRepository sessionRepository;
     private final SkillBadgeRepository skillBadgeRepository;
+    private final UserRepository userRepository;
+    private final SkillRepository skillRepository;
 
-    public BadgeService(SessionRepository sessionRepository, SkillBadgeRepository skillBadgeRepository) {
+    public BadgeService(SessionRepository sessionRepository, SkillBadgeRepository skillBadgeRepository,
+                         UserRepository userRepository, SkillRepository skillRepository) {
         this.sessionRepository = sessionRepository;
         this.skillBadgeRepository = skillBadgeRepository;
+        this.userRepository = userRepository;
+        this.skillRepository = skillRepository;
     }
 
     /** Cumulative: awards every threshold newly reached, keeps all earned tiers, safe to call repeatedly. */
@@ -40,6 +49,12 @@ public class BadgeService {
 
     /** Admin-only grant — VERIFIED is never awarded by evaluateAndAward's rule engine. Idempotent. */
     public void awardVerified(Long userId, Long skillId) {
+        if (userRepository.findById(userId).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        }
+        if (skillRepository.findById(skillId).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Skill not found");
+        }
         if (skillBadgeRepository.existsByUserIdAndSkillIdAndBadgeType(userId, skillId, BadgeType.VERIFIED)) {
             return;
         }

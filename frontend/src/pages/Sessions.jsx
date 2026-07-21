@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -41,6 +41,8 @@ export default function Sessions() {
     api.get('/skills').then((res) => {
       setSkillsById(Object.fromEntries(res.data.map((s) => [s.id, s.skillName])));
     }).catch(() => {});
+    api.get('/me/credits').then((res) => setCredits(res.data)).catch(() => {});
+    api.get('/me/credits/transactions').then((res) => setTransactions(res.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -56,6 +58,9 @@ export default function Sessions() {
       }).catch(() => {});
     });
   }, [sessions, user]);
+
+  const [credits, setCredits] = useState(null);
+  const [transactions, setTransactions] = useState([]);
 
   const [matches, setMatches] = useState([]);
   const [newOpen, setNewOpen] = useState(false);
@@ -326,6 +331,48 @@ export default function Sessions() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Credits</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{credits ? credits.totalCredits : '—'}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Earned</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{credits ? credits.creditsEarned : '—'}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Spent</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{credits ? credits.creditsSpent : '—'}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Transaction History</h2>
+        {transactions.length === 0 && <p className="text-sm text-muted-foreground">No transactions yet.</p>}
+        {transactions.map((t) => (
+          <div key={t.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
+            <span>Session #{t.sessionId}</span>
+            <span className="text-muted-foreground">{t.transactionDate}</span>
+            <span className={t.transactionType === 'EARNED' ? 'text-emerald-600' : 'text-destructive'}>
+              {t.transactionType === 'EARNED' ? '+' : '-'}{t.amount}
+            </span>
+          </div>
+        ))}
+      </div>
+
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
       <Tabs defaultValue="upcoming">

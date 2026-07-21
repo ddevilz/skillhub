@@ -30,6 +30,14 @@ test('renders upcoming sessions with resolved names, skill, and a confirm action
         ],
       });
     }
+    if (url === '/me/credits') {
+      return Promise.resolve({ data: { totalCredits: 12, creditsEarned: 15, creditsSpent: 3 } });
+    }
+    if (url === '/me/credits/transactions') {
+      return Promise.resolve({
+        data: [{ id: 1, sessionId: 10, transactionType: 'EARNED', amount: 1, transactionDate: '2026-07-20T09:00:00' }],
+      });
+    }
     if (url === '/users/2') {
       return Promise.resolve({ data: { id: 2, fullName: 'Teacher Two', city: 'Pune' } });
     }
@@ -48,6 +56,8 @@ test('renders upcoming sessions with resolved names, skill, and a confirm action
   expect(screen.getByText('Python')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+  expect(await screen.findByText('12')).toBeInTheDocument();
+  expect(screen.getByText(/session #10/i)).toBeInTheDocument();
 });
 
 test('opens the new session dialog and shows match/teacher/skill fields', async () => {

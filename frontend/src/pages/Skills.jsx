@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 
@@ -44,7 +45,7 @@ export default function Skills() {
   const [catalog, setCatalog] = useState([]);
   const [mySkills, setMySkills] = useState([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ skillId: '', skillType: 'CAN_TEACH', proficiency: '', experience: '' });
+  const [form, setForm] = useState({ skillId: '', skillType: 'CAN_TEACH', proficiency: '' });
   const [error, setError] = useState('');
   const [removeError, setRemoveError] = useState('');
 
@@ -65,10 +66,9 @@ export default function Skills() {
         skillId: Number(form.skillId),
         skillType: form.skillType,
         proficiency: form.proficiency || undefined,
-        experience: form.experience || undefined,
       });
       setOpen(false);
-      setForm({ skillId: '', skillType: 'CAN_TEACH', proficiency: '', experience: '' });
+      setForm({ skillId: '', skillType: 'CAN_TEACH', proficiency: '' });
       loadMySkills();
     } catch (err) {
       setError(err.response?.data?.message ?? 'Could not add skill');
@@ -101,6 +101,7 @@ export default function Skills() {
             <form onSubmit={addSkill} className="space-y-4">
               <DialogHeader>
                 <DialogTitle>Add a skill</DialogTitle>
+                <DialogDescription>Choose a skill from the catalog and set how you know it.</DialogDescription>
               </DialogHeader>
               <div className="space-y-2">
                 <Label htmlFor="skill-select">Skill</Label>

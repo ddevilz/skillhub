@@ -8,6 +8,7 @@ import com.skillswap.entity.Skill;
 import com.skillswap.entity.SkillType;
 import com.skillswap.entity.UserSkill;
 import com.skillswap.repository.SessionRepository;
+import com.skillswap.repository.SkillBadgeRepository;
 import com.skillswap.repository.SkillRepository;
 import com.skillswap.repository.UserSkillRepository;
 import org.springframework.cache.annotation.CacheEvict;
@@ -26,12 +27,14 @@ public class SkillService {
     private final SkillRepository skillRepository;
     private final UserSkillRepository userSkillRepository;
     private final SessionRepository sessionRepository;
+    private final SkillBadgeRepository skillBadgeRepository;
 
     public SkillService(SkillRepository skillRepository, UserSkillRepository userSkillRepository,
-                        SessionRepository sessionRepository) {
+                        SessionRepository sessionRepository, SkillBadgeRepository skillBadgeRepository) {
         this.skillRepository = skillRepository;
         this.userSkillRepository = userSkillRepository;
         this.sessionRepository = sessionRepository;
+        this.skillBadgeRepository = skillBadgeRepository;
     }
 
     @Cacheable("skills")
@@ -94,7 +97,7 @@ public class SkillService {
                 us.getSkillType().name(), us.getExperience(), us.getProficiency());
     }
 
-    @CacheEvict(value = "skills", allEntries = true)
+    @CacheEvict(value = {"skills", "categories"}, allEntries = true)
     public SkillDto createSkill(AdminSkillRequest req) {
         Skill s = new Skill();
         s.setSkillName(req.skillName());
@@ -104,7 +107,7 @@ public class SkillService {
         return new SkillDto(saved.getId(), saved.getSkillName(), saved.getCategory(), saved.getDescription());
     }
 
-    @CacheEvict(value = "skills", allEntries = true)
+    @CacheEvict(value = {"skills", "categories"}, allEntries = true)
     public SkillDto updateSkill(Long skillId, AdminSkillRequest req) {
         Skill s = skillRepository.findById(skillId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Skill not found"));
@@ -115,11 +118,13 @@ public class SkillService {
         return new SkillDto(saved.getId(), saved.getSkillName(), saved.getCategory(), saved.getDescription());
     }
 
-    @CacheEvict(value = "skills", allEntries = true)
+    @CacheEvict(value = {"skills", "categories"}, allEntries = true)
     public void deleteSkill(Long skillId) {
         Skill s = skillRepository.findById(skillId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Skill not found"));
-        if (userSkillRepository.existsBySkillId(skillId) || sessionRepository.existsBySkillId(skillId)) {
+        if (userSkillRepository.existsBySkillId(skillId)
+                || sessionRepository.existsBySkillId(skillId)
+                || skillBadgeRepository.existsBySkillId(skillId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Skill is in use and cannot be deleted");
         }
         skillRepository.delete(s);

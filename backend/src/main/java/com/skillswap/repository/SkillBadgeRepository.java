@@ -9,4 +9,5 @@ import java.util.List;
 public interface SkillBadgeRepository extends JpaRepository<SkillBadge, Long> {
     List<SkillBadge> findByUserId(Long userId);
     boolean existsByUserIdAndSkillIdAndBadgeType(Long userId, Long skillId, BadgeType badgeType);
+    boolean existsBySkillId(Long skillId);
 }

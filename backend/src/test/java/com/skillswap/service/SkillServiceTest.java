@@ -21,7 +21,8 @@ class SkillServiceTest {
     private final SkillRepository skillRepo = mock(SkillRepository.class);
     private final UserSkillRepository userSkillRepo = mock(UserSkillRepository.class);
     private final com.skillswap.repository.SessionRepository sessionRepo = mock(com.skillswap.repository.SessionRepository.class);
-    private final SkillService service = new SkillService(skillRepo, userSkillRepo, sessionRepo);
+    private final com.skillswap.repository.SkillBadgeRepository skillBadgeRepo = mock(com.skillswap.repository.SkillBadgeRepository.class);
+    private final SkillService service = new SkillService(skillRepo, userSkillRepo, sessionRepo, skillBadgeRepo);
 
     @Test
     void addRejectsUnknownSkill() {
@@ -110,11 +111,23 @@ class SkillServiceTest {
     }
 
     @Test
+    void deleteSkillRejectsWhenInUseByBadge() {
+        Skill s = new Skill();
+        when(skillRepo.findById(1L)).thenReturn(Optional.of(s));
+        when(userSkillRepo.existsBySkillId(1L)).thenReturn(false);
+        when(sessionRepo.existsBySkillId(1L)).thenReturn(false);
+        when(skillBadgeRepo.existsBySkillId(1L)).thenReturn(true);
+        assertThatThrownBy(() -> service.deleteSkill(1L)).isInstanceOf(ResponseStatusException.class);
+        verify(skillRepo, never()).delete(any());
+    }
+
+    @Test
     void deleteSkillSucceedsWhenUnused() {
         Skill s = new Skill();
         when(skillRepo.findById(1L)).thenReturn(Optional.of(s));
         when(userSkillRepo.existsBySkillId(1L)).thenReturn(false);
         when(sessionRepo.existsBySkillId(1L)).thenReturn(false);
+        when(skillBadgeRepo.existsBySkillId(anyLong())).thenReturn(false);
         service.deleteSkill(1L);
         verify(skillRepo).delete(s);
     }

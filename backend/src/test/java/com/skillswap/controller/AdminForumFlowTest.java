@@ -83,4 +83,60 @@ class AdminForumFlowTest {
         mvc.perform(delete("/api/admin/forum/posts/{id}", postId).header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNoContent());
     }
+
+    @Test
+    void adminCanDeletePostThatHasCommentsAndUpvotes() throws Exception {
+        String authorToken = register("prolific-poster@example.com");
+        String commenterToken = register("engaged-commenter@example.com");
+        register("delete-admin@example.com");
+        String adminToken = promoteToAdminAndLogin("delete-admin@example.com");
+        Long categoryId = seedCategory("Delete With Children " + System.identityHashCode(this));
+
+        String postBody = json.writeValueAsString(Map.of("title", "Popular post", "content", "Lots of engagement"));
+        String postRes = mvc.perform(post("/api/forum/categories/{id}/posts", categoryId)
+                        .header("Authorization", "Bearer " + authorToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(postBody))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Long postId = ((Number) com.jayway.jsonpath.JsonPath.read(postRes, "$.id")).longValue();
+
+        String commentBody = json.writeValueAsString(Map.of("commentText", "Great post!"));
+        mvc.perform(post("/api/forum/posts/{id}/comments", postId)
+                        .header("Authorization", "Bearer " + commenterToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(commentBody))
+                .andExpect(status().isCreated());
+
+        mvc.perform(post("/api/forum/posts/{id}/upvote", postId).header("Authorization", "Bearer " + commenterToken))
+                .andExpect(status().isCreated());
+
+        mvc.perform(delete("/api/admin/forum/posts/{id}", postId).header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void moderatedPostsCommentsAreHiddenFromNormalUsers() throws Exception {
+        String authorToken = register("mod-comment-author@example.com");
+        String readerToken = register("mod-comment-reader@example.com");
+        register("comment-mod-admin@example.com");
+        String adminToken = promoteToAdminAndLogin("comment-mod-admin@example.com");
+        Long categoryId = seedCategory("Comment Hide Test " + System.identityHashCode(this));
+
+        String postBody = json.writeValueAsString(Map.of("title", "Will be hidden", "content", "Body"));
+        String postRes = mvc.perform(post("/api/forum/categories/{id}/posts", categoryId)
+                        .header("Authorization", "Bearer " + authorToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(postBody))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Long postId = ((Number) com.jayway.jsonpath.JsonPath.read(postRes, "$.id")).longValue();
+
+        String commentBody = json.writeValueAsString(Map.of("commentText", "A comment"));
+        mvc.perform(post("/api/forum/posts/{id}/comments", postId)
+                        .header("Authorization", "Bearer " + readerToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(commentBody))
+                .andExpect(status().isCreated());
+
+        mvc.perform(put("/api/admin/forum/posts/{id}/moderate", postId).header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/forum/posts/{id}/comments", postId).header("Authorization", "Bearer " + readerToken))
+                .andExpect(status().isNotFound());
+    }
 }

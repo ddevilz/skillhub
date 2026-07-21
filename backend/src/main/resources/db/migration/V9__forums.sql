@@ -25,7 +25,7 @@ CREATE TABLE forum_comments (
     comment_text TEXT NOT NULL,
     is_moderated BOOLEAN NOT NULL DEFAULT FALSE,
     created_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_comment_post FOREIGN KEY (post_id) REFERENCES forum_posts(id),
+    CONSTRAINT fk_comment_post FOREIGN KEY (post_id) REFERENCES forum_posts(id) ON DELETE CASCADE,
     CONSTRAINT fk_comment_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 CREATE INDEX idx_comment_post ON forum_comments(post_id);
@@ -35,7 +35,7 @@ CREATE TABLE forum_post_upvotes (
     post_id      BIGINT NOT NULL,
     user_id      BIGINT NOT NULL,
     created_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_upvote_post FOREIGN KEY (post_id) REFERENCES forum_posts(id),
+    CONSTRAINT fk_upvote_post FOREIGN KEY (post_id) REFERENCES forum_posts(id) ON DELETE CASCADE,
     CONSTRAINT fk_upvote_user FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT uq_upvote_once UNIQUE (post_id, user_id)
 );

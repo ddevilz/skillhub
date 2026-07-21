@@ -71,6 +71,7 @@ public class ForumService {
     }
 
     public List<ForumCommentDto> comments(Long postId) {
+        findVisiblePost(postId);
         return commentRepository.findByPostIdAndIsModeratedFalse(postId).stream()
                 .map(this::toDto).toList();
     }

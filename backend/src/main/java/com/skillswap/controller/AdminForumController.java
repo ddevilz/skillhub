@@ -2,12 +2,16 @@ package com.skillswap.controller;
 
 import com.skillswap.dto.CreateForumCategoryRequest;
 import com.skillswap.dto.ForumCategoryDto;
+import com.skillswap.dto.ForumCommentDto;
+import com.skillswap.dto.ForumPostDto;
 import com.skillswap.service.CurrentUser;
 import com.skillswap.service.ForumService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/forum")
@@ -19,6 +23,18 @@ public class AdminForumController {
     public AdminForumController(ForumService forumService, CurrentUser currentUser) {
         this.forumService = forumService;
         this.currentUser = currentUser;
+    }
+
+    @GetMapping("/posts/moderated")
+    public List<ForumPostDto> moderatedPosts() {
+        currentUser.requireAdmin();
+        return forumService.moderatedPosts();
+    }
+
+    @GetMapping("/comments/moderated")
+    public List<ForumCommentDto> moderatedComments() {
+        currentUser.requireAdmin();
+        return forumService.moderatedComments();
     }
 
     @PutMapping("/posts/{id}/moderate")

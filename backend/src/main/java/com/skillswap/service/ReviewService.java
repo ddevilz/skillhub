@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @Service
 public class ReviewService {
 
@@ -63,6 +65,23 @@ public class ReviewService {
         Double avg = reviewRepository.averageRatingFor(userId);
         long count = reviewRepository.countByRatedUserId(userId);
         return new RatingSummaryDto(avg == null ? 0.0 : avg, count);
+    }
+
+    public List<ReviewDto> flaggedReviews() {
+        return reviewRepository.findByFlaggedTrue().stream().map(this::toDto).toList();
+    }
+
+    public void unflag(Long reviewId) {
+        Review r = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Review not found"));
+        r.setFlagged(false);
+        reviewRepository.save(r);
+    }
+
+    public void adminDelete(Long reviewId) {
+        Review r = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Review not found"));
+        reviewRepository.delete(r);
     }
 
     private ReviewDto toDto(Review r) {

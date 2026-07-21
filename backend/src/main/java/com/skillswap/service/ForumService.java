@@ -136,6 +136,14 @@ public class ForumService {
         commentRepository.delete(c);
     }
 
+    public List<ForumPostDto> moderatedPosts() {
+        return postRepository.findByModeratedTrue().stream().map(this::toDto).toList();
+    }
+
+    public List<ForumCommentDto> moderatedComments() {
+        return commentRepository.findByModeratedTrue().stream().map(this::toDto).toList();
+    }
+
     private ForumPost findVisiblePost(Long postId) {
         ForumPost p = postRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));

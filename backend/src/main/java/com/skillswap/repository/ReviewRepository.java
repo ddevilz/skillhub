@@ -11,6 +11,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     boolean existsBySessionIdAndReviewerUserId(Long sessionId, Long reviewerUserId);
     List<Review> findByRatedUserId(Long ratedUserId);
     long countByRatedUserId(Long ratedUserId);
+    List<Review> findByFlaggedTrue();
 
     @Query("SELECT AVG(r.rating) FROM Review r WHERE r.ratedUserId = :userId")
     Double averageRatingFor(@Param("userId") Long userId);

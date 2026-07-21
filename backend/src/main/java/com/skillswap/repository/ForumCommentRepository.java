@@ -16,4 +16,6 @@ public interface ForumCommentRepository extends JpaRepository<ForumComment, Long
 
     @Query("SELECT COUNT(c) FROM ForumComment c WHERE c.postId = :postId AND c.moderated = false")
     long countByPostIdAndIsModeratedFalse(@Param("postId") Long postId);
+
+    List<ForumComment> findByModeratedTrue();
 }

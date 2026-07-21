@@ -223,4 +223,18 @@ class ForumServiceTest {
         service.deleteCategory(1L);
         verify(categoryRepo).delete(cat);
     }
+
+    @Test
+    void moderatedPostsReturnsOnlyModerated() {
+        when(postRepo.findByModeratedTrue()).thenReturn(java.util.List.of(post(5L, 10L, true)));
+        assertThat(service.moderatedPosts()).hasSize(1);
+    }
+
+    @Test
+    void moderatedCommentsReturnsOnlyModerated() {
+        ForumComment c = new ForumComment();
+        c.setModerated(true);
+        when(commentRepo.findByModeratedTrue()).thenReturn(java.util.List.of(c));
+        assertThat(service.moderatedComments()).hasSize(1);
+    }
 }

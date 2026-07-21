@@ -26,4 +26,6 @@ public interface ForumPostRepository extends JpaRepository<ForumPost, Long> {
     List<ForumPost> searchByKeyword(@Param("keyword") String keyword);
 
     boolean existsByCategoryId(Long categoryId);
+
+    List<ForumPost> findByModeratedTrue();
 }

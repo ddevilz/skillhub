@@ -46,7 +46,10 @@ export default function Nav() {
           </nav>
         </div>
         <DropdownMenu>
-          <DropdownMenuTrigger className="outline-none" aria-label="Account menu">
+          <DropdownMenuTrigger
+            className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="Account menu"
+          >
             <Avatar>
               <AvatarFallback>{initials(user?.fullName)}</AvatarFallback>
             </Avatar>

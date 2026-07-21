@@ -8,9 +8,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    if (token && !user) {
-      api.get('/me').then((res) => setUser(res.data)).catch(() => {});
-    }
+    if (!token || user) return;
+    let ignore = false;
+    api.get('/me').then((res) => { if (!ignore) setUser(res.data); }).catch(() => {});
+    return () => { ignore = true; };
   }, [token, user]);
 
   function persist(res) {

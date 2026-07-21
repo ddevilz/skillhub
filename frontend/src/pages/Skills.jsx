@@ -46,6 +46,7 @@ export default function Skills() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ skillId: '', skillType: 'CAN_TEACH', proficiency: '', experience: '' });
   const [error, setError] = useState('');
+  const [removeError, setRemoveError] = useState('');
 
   function loadMySkills() {
     api.get('/me/skills').then((res) => setMySkills(res.data)).catch(() => {});
@@ -75,11 +76,13 @@ export default function Skills() {
   }
 
   async function removeSkill(id) {
+    setRemoveError('');
     try {
       await api.delete(`/me/skills/${id}`);
       loadMySkills();
-    } catch {
-      // best-effort; the list stays as-is if this fails
+      setRemoveError('');
+    } catch (err) {
+      setRemoveError(err.response?.data?.message ?? 'Could not remove skill');
     }
   }
 
@@ -137,6 +140,8 @@ export default function Skills() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {removeError && <p role="alert" className="text-sm text-destructive">{removeError}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <SkillColumn title="I can teach" skills={teach} onRemove={removeSkill} />

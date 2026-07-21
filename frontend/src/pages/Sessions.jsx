@@ -86,7 +86,7 @@ export default function Sessions() {
                   {s.locationOrLink}
                 </a>
               ) : (
-                s.mode
+                s.locationOrLink || s.mode
               )}
             </p>
             <Badge variant={s.status === 'CANCELLED' ? 'destructive' : s.status === 'COMPLETED' ? 'default' : 'secondary'}>

@@ -16,6 +16,7 @@ public interface UserSkillRepository extends JpaRepository<UserSkill, Long> {
     long countByUserIdAndSkillType(Long userId, SkillType skillType);
     Optional<UserSkill> findByIdAndUserId(Long id, Long userId);
     boolean existsByUserIdAndSkillIdAndSkillType(Long userId, Long skillId, SkillType skillType);
+    boolean existsBySkillId(Long skillId);
 
     // Candidates who CAN_TEACH a skill the current user WANT_TO_LEARN.
     // Empty-string sentinels are used instead of NULL so the bind params stay typed on H2.

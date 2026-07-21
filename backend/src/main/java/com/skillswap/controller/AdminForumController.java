@@ -1,7 +1,11 @@
 package com.skillswap.controller;
 
+import com.skillswap.dto.CreateForumCategoryRequest;
+import com.skillswap.dto.ForumCategoryDto;
 import com.skillswap.service.CurrentUser;
 import com.skillswap.service.ForumService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,6 +46,25 @@ public class AdminForumController {
     public ResponseEntity<Void> deleteComment(@PathVariable Long id) {
         currentUser.requireAdmin();
         forumService.adminDeleteComment(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/categories")
+    public ResponseEntity<ForumCategoryDto> createCategory(@Valid @RequestBody CreateForumCategoryRequest req) {
+        currentUser.requireAdmin();
+        return ResponseEntity.status(HttpStatus.CREATED).body(forumService.createCategory(req));
+    }
+
+    @PutMapping("/categories/{id}")
+    public ForumCategoryDto updateCategory(@PathVariable Long id, @Valid @RequestBody CreateForumCategoryRequest req) {
+        currentUser.requireAdmin();
+        return forumService.updateCategory(id, req);
+    }
+
+    @DeleteMapping("/categories/{id}")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        currentUser.requireAdmin();
+        forumService.deleteCategory(id);
         return ResponseEntity.noContent().build();
     }
 }

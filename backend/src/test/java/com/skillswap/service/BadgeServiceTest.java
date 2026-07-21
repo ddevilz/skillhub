@@ -62,4 +62,18 @@ class BadgeServiceTest {
         when(badgeRepo.findByUserId(1L)).thenReturn(List.of(b));
         assertThat(service.badgesFor(1L)).hasSize(1);
     }
+
+    @Test
+    void awardVerifiedGrantsBadge() {
+        when(badgeRepo.existsByUserIdAndSkillIdAndBadgeType(1L, 4L, BadgeType.VERIFIED)).thenReturn(false);
+        service.awardVerified(1L, 4L);
+        verify(badgeRepo).save(any(SkillBadge.class));
+    }
+
+    @Test
+    void awardVerifiedIsIdempotent() {
+        when(badgeRepo.existsByUserIdAndSkillIdAndBadgeType(1L, 4L, BadgeType.VERIFIED)).thenReturn(true);
+        service.awardVerified(1L, 4L);
+        verify(badgeRepo, never()).save(any());
+    }
 }

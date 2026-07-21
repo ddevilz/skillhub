@@ -38,6 +38,18 @@ public class BadgeService {
         return skillBadgeRepository.findByUserId(userId);
     }
 
+    /** Admin-only grant — VERIFIED is never awarded by evaluateAndAward's rule engine. Idempotent. */
+    public void awardVerified(Long userId, Long skillId) {
+        if (skillBadgeRepository.existsByUserIdAndSkillIdAndBadgeType(userId, skillId, BadgeType.VERIFIED)) {
+            return;
+        }
+        SkillBadge b = new SkillBadge();
+        b.setUserId(userId);
+        b.setSkillId(skillId);
+        b.setBadgeType(BadgeType.VERIFIED);
+        skillBadgeRepository.save(b);
+    }
+
     private void awardIfReached(Long userId, Long skillId, long count, int threshold, BadgeType type) {
         if (count < threshold) return;
         if (skillBadgeRepository.existsByUserIdAndSkillIdAndBadgeType(userId, skillId, type)) return;

@@ -1,6 +1,7 @@
 package com.skillswap.service;
 
 import com.skillswap.dto.AddUserSkillRequest;
+import com.skillswap.dto.SkillDto;
 import com.skillswap.dto.UserSkillDto;
 import com.skillswap.entity.Skill;
 import com.skillswap.entity.SkillType;
@@ -19,7 +20,8 @@ class SkillServiceTest {
 
     private final SkillRepository skillRepo = mock(SkillRepository.class);
     private final UserSkillRepository userSkillRepo = mock(UserSkillRepository.class);
-    private final SkillService service = new SkillService(skillRepo, userSkillRepo);
+    private final com.skillswap.repository.SessionRepository sessionRepo = mock(com.skillswap.repository.SessionRepository.class);
+    private final SkillService service = new SkillService(skillRepo, userSkillRepo, sessionRepo);
 
     @Test
     void addRejectsUnknownSkill() {
@@ -67,5 +69,53 @@ class SkillServiceTest {
         assertThatThrownBy(() -> service.remove(1L, 5L))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("not found");
+    }
+
+    @Test
+    void createSkillPersistsAndReturnsDto() {
+        when(skillRepo.save(any(Skill.class))).thenAnswer(i -> {
+            Skill s = i.getArgument(0);
+            try { var f = Skill.class.getDeclaredField("id"); f.setAccessible(true); f.set(s, 1L); }
+            catch (Exception e) { throw new RuntimeException(e); }
+            return s;
+        });
+        SkillDto dto = service.createSkill(new com.skillswap.dto.AdminSkillRequest("Ukulele", "Music", "Small guitar"));
+        assertThat(dto.skillName()).isEqualTo("Ukulele");
+    }
+
+    @Test
+    void updateSkillRejectsWhenNotFound() {
+        when(skillRepo.findById(99L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.updateSkill(99L, new com.skillswap.dto.AdminSkillRequest("X", "Y", null)))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void deleteSkillRejectsWhenInUseByUserSkill() {
+        Skill s = new Skill();
+        when(skillRepo.findById(1L)).thenReturn(Optional.of(s));
+        when(userSkillRepo.existsBySkillId(1L)).thenReturn(true);
+        assertThatThrownBy(() -> service.deleteSkill(1L)).isInstanceOf(ResponseStatusException.class);
+        verify(skillRepo, never()).delete(any());
+    }
+
+    @Test
+    void deleteSkillRejectsWhenInUseBySession() {
+        Skill s = new Skill();
+        when(skillRepo.findById(1L)).thenReturn(Optional.of(s));
+        when(userSkillRepo.existsBySkillId(1L)).thenReturn(false);
+        when(sessionRepo.existsBySkillId(1L)).thenReturn(true);
+        assertThatThrownBy(() -> service.deleteSkill(1L)).isInstanceOf(ResponseStatusException.class);
+        verify(skillRepo, never()).delete(any());
+    }
+
+    @Test
+    void deleteSkillSucceedsWhenUnused() {
+        Skill s = new Skill();
+        when(skillRepo.findById(1L)).thenReturn(Optional.of(s));
+        when(userSkillRepo.existsBySkillId(1L)).thenReturn(false);
+        when(sessionRepo.existsBySkillId(1L)).thenReturn(false);
+        service.deleteSkill(1L);
+        verify(skillRepo).delete(s);
     }
 }

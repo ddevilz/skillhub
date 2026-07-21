@@ -66,7 +66,7 @@ export default function Matches() {
           <TabsTrigger value="mine">My Matches</TabsTrigger>
         </TabsList>
 
-        <TabsContent forceMount value="suggestions" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 data-[state=inactive]:hidden">
+        <TabsContent value="suggestions" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {suggestions.map((s) => (
             <Card key={s.userId}>
               <CardHeader>
@@ -90,7 +90,7 @@ export default function Matches() {
           {suggestions.length === 0 && <p className="text-sm text-muted-foreground">No suggestions yet — add some skills first.</p>}
         </TabsContent>
 
-        <TabsContent forceMount value="mine" className="space-y-3 data-[state=inactive]:hidden">
+        <TabsContent value="mine" className="space-y-3">
           {matches.map((m) => {
             const otherId = user && m.userAId === user.id ? m.userBId : m.userAId;
             const other = profiles[otherId];

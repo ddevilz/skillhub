@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import { AuthProvider } from '../auth/AuthContext';
@@ -25,6 +26,8 @@ test('renders suggestions and my matches, resolving the other participant name',
     return Promise.reject(new Error('unexpected url ' + url));
   });
 
+  const user = userEvent.setup();
+
   render(
     <AuthProvider>
       <MemoryRouter>
@@ -33,8 +36,17 @@ test('renders suggestions and my matches, resolving the other participant name',
     </AuthProvider>
   );
 
-  await waitFor(() => expect(screen.getAllByText('Teacher Two')).toHaveLength(2));
+  // Suggestions tab is active by default — its content is mounted and interactive.
+  await waitFor(() => expect(screen.getByText('Teacher Two')).toBeInTheDocument());
   expect(screen.getByRole('button', { name: /send request/i })).toBeInTheDocument();
+  // The inactive "My Matches" panel isn't mounted, so its buttons don't exist yet.
+  expect(screen.queryByRole('button', { name: /accept/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /reject/i })).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole('tab', { name: /my matches/i }));
+
+  // After switching tabs, the "My Matches" panel mounts and shows the pending match.
+  await waitFor(() => expect(screen.getByText('Teacher Two')).toBeInTheDocument());
   expect(screen.getByRole('button', { name: /accept/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /reject/i })).toBeInTheDocument();
 });

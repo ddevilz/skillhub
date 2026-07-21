@@ -1,7 +1,9 @@
 package com.skillswap.service;
 
+import com.skillswap.dto.CreateForumCategoryRequest;
 import com.skillswap.dto.CreateForumCommentRequest;
 import com.skillswap.dto.CreateForumPostRequest;
+import com.skillswap.dto.ForumCategoryDto;
 import com.skillswap.dto.ForumCommentDto;
 import com.skillswap.dto.ForumPostDto;
 import com.skillswap.entity.*;
@@ -188,5 +190,51 @@ class ForumServiceTest {
         when(commentRepo.findById(9L)).thenReturn(Optional.of(c));
         service.adminDeleteComment(9L);
         verify(commentRepo).delete(c);
+    }
+
+    @Test
+    void createCategoryPersists() {
+        when(categoryRepo.save(any(ForumCategory.class))).thenAnswer(i -> i.getArgument(0));
+        ForumCategoryDto dto = service.createCategory(new CreateForumCategoryRequest("Gaming", "Video games"));
+        assertThat(dto.categoryName()).isEqualTo("Gaming");
+    }
+
+    @Test
+    void updateCategoryRejectsWhenNotFound() {
+        when(categoryRepo.findById(99L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.updateCategory(99L, new CreateForumCategoryRequest("X", null)))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void deleteCategoryRejectsWhenPostsExist() {
+        ForumCategory cat = new ForumCategory();
+        when(categoryRepo.findById(1L)).thenReturn(Optional.of(cat));
+        when(postRepo.existsByCategoryId(1L)).thenReturn(true);
+        assertThatThrownBy(() -> service.deleteCategory(1L)).isInstanceOf(ResponseStatusException.class);
+        verify(categoryRepo, never()).delete(any());
+    }
+
+    @Test
+    void deleteCategorySucceedsWhenEmpty() {
+        ForumCategory cat = new ForumCategory();
+        when(categoryRepo.findById(1L)).thenReturn(Optional.of(cat));
+        when(postRepo.existsByCategoryId(1L)).thenReturn(false);
+        service.deleteCategory(1L);
+        verify(categoryRepo).delete(cat);
+    }
+
+    @Test
+    void moderatedPostsReturnsOnlyModerated() {
+        when(postRepo.findByModeratedTrue()).thenReturn(java.util.List.of(post(5L, 10L, true)));
+        assertThat(service.moderatedPosts()).hasSize(1);
+    }
+
+    @Test
+    void moderatedCommentsReturnsOnlyModerated() {
+        ForumComment c = new ForumComment();
+        c.setModerated(true);
+        when(commentRepo.findByModeratedTrue()).thenReturn(java.util.List.of(c));
+        assertThat(service.moderatedComments()).hasSize(1);
     }
 }

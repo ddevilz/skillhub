@@ -24,4 +24,8 @@ public interface ForumPostRepository extends JpaRepository<ForumPost, Long> {
                OR LOWER(CAST(p.content AS string)) LIKE LOWER(CONCAT('%', :keyword, '%')))
         """)
     List<ForumPost> searchByKeyword(@Param("keyword") String keyword);
+
+    boolean existsByCategoryId(Long categoryId);
+
+    List<ForumPost> findByModeratedTrue();
 }

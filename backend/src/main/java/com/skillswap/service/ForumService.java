@@ -136,6 +136,14 @@ public class ForumService {
         commentRepository.delete(c);
     }
 
+    public List<ForumPostDto> moderatedPosts() {
+        return postRepository.findByModeratedTrue().stream().map(this::toDto).toList();
+    }
+
+    public List<ForumCommentDto> moderatedComments() {
+        return commentRepository.findByModeratedTrue().stream().map(this::toDto).toList();
+    }
+
     private ForumPost findVisiblePost(Long postId) {
         ForumPost p = postRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
@@ -159,5 +167,31 @@ public class ForumService {
     private ForumCommentDto toDto(ForumComment c) {
         return new ForumCommentDto(c.getId(), c.getPostId(), c.getUserId(), authorName(c.getUserId()),
                 c.getCommentText(), c.getCreatedDate());
+    }
+
+    public ForumCategoryDto createCategory(CreateForumCategoryRequest req) {
+        ForumCategory c = new ForumCategory();
+        c.setCategoryName(req.categoryName());
+        c.setDescription(req.description());
+        ForumCategory saved = categoryRepository.save(c);
+        return new ForumCategoryDto(saved.getId(), saved.getCategoryName(), saved.getDescription());
+    }
+
+    public ForumCategoryDto updateCategory(Long categoryId, CreateForumCategoryRequest req) {
+        ForumCategory c = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+        c.setCategoryName(req.categoryName());
+        c.setDescription(req.description());
+        ForumCategory saved = categoryRepository.save(c);
+        return new ForumCategoryDto(saved.getId(), saved.getCategoryName(), saved.getDescription());
+    }
+
+    public void deleteCategory(Long categoryId) {
+        ForumCategory c = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+        if (postRepository.existsByCategoryId(categoryId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Category has posts and cannot be deleted");
+        }
+        categoryRepository.delete(c);
     }
 }

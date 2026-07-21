@@ -9,4 +9,5 @@ import java.util.List;
 public interface SessionRepository extends JpaRepository<Session, Long> {
     List<Session> findByTeacherUserIdOrLearnerUserId(Long teacherUserId, Long learnerUserId);
     long countByTeacherUserIdAndSkillIdAndStatus(Long teacherUserId, Long skillId, SessionStatus status);
+    boolean existsBySkillId(Long skillId);
 }

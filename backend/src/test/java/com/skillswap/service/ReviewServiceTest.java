@@ -116,4 +116,35 @@ class ReviewServiceTest {
         assertThat(dto.averageRating()).isEqualTo(0.0);
         assertThat(dto.reviewCount()).isZero();
     }
+
+    @Test
+    void flaggedReviewsReturnsOnlyFlagged() {
+        Review r = new Review();
+        when(reviewRepo.findByFlaggedTrue()).thenReturn(java.util.List.of(r));
+        assertThat(service.flaggedReviews()).hasSize(1);
+    }
+
+    @Test
+    void unflagClearsFlag() {
+        Review r = new Review();
+        r.setFlagged(true);
+        when(reviewRepo.findById(9L)).thenReturn(Optional.of(r));
+        service.unflag(9L);
+        assertThat(r.isFlagged()).isFalse();
+        verify(reviewRepo).save(r);
+    }
+
+    @Test
+    void adminDeleteRemovesReview() {
+        Review r = new Review();
+        when(reviewRepo.findById(9L)).thenReturn(Optional.of(r));
+        service.adminDelete(9L);
+        verify(reviewRepo).delete(r);
+    }
+
+    @Test
+    void unflagRejectsWhenNotFound() {
+        when(reviewRepo.findById(99L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.unflag(99L)).isInstanceOf(ResponseStatusException.class);
+    }
 }

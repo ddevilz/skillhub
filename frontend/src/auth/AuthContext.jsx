@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import api from '../api/client';
 
 const AuthContext = createContext(null);
@@ -6,6 +6,13 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    if (!token || user) return;
+    let ignore = false;
+    api.get('/me').then((res) => { if (!ignore) setUser(res.data); }).catch(() => {});
+    return () => { ignore = true; };
+  }, [token, user]);
 
   function persist(res) {
     const { token: t, ...profile } = res.data;

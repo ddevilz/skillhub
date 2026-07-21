@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Skills from './pages/Skills';
+import Matches from './pages/Matches';
 
 export default function App() {
   return (
@@ -30,6 +31,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppShell>
                   <Skills />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/matches"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <Matches />
                 </AppShell>
               </ProtectedRoute>
             }

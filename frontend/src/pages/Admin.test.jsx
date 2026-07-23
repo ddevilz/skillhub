@@ -190,4 +190,5 @@ test('renders the reports tab with all five reports', async () => {
   expect(screen.getByText('General Discussion')).toBeInTheDocument();
   expect(screen.getAllByText('Python').length).toBeGreaterThan(0);
   expect(screen.getByText('3')).toBeInTheDocument();
+  expect(screen.getByText('2026-07-01')).toBeInTheDocument();
 });

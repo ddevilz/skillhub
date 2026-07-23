@@ -183,10 +183,7 @@ export default function Forum() {
     }
   }, [activeCategoryId]);
 
-  async function runSearch(e) {
-    e.preventDefault();
-    const keyword = searchInput.trim();
-    if (!keyword) return;
+  async function searchPosts(keyword) {
     try {
       const res = await api.get('/forum/posts/search', { params: { keyword } });
       setSearchResults(res.data);
@@ -195,6 +192,13 @@ export default function Forum() {
       setSearchResults([]);
       setSearchKeyword(keyword);
     }
+  }
+
+  async function runSearch(e) {
+    e.preventDefault();
+    const keyword = searchInput.trim();
+    if (!keyword) return;
+    await searchPosts(keyword);
   }
 
   function clearSearch() {
@@ -230,7 +234,11 @@ export default function Forum() {
         onBack={() => setSelectedPostId(null)}
         onDeleted={() => {
           setSelectedPostId(null);
-          if (activeCategoryId) loadCategoryPosts(activeCategoryId);
+          if (searchKeyword) {
+            searchPosts(searchKeyword);
+          } else if (activeCategoryId) {
+            loadCategoryPosts(activeCategoryId);
+          }
         }}
       />
     );

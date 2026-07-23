@@ -401,6 +401,7 @@ export default function Sessions() {
           <form onSubmit={submitReschedule} className="space-y-4">
             <DialogHeader>
               <DialogTitle>Reschedule session</DialogTitle>
+              <DialogDescription>Pick a new date and time; the other participant will need to re-confirm.</DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">

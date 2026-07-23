@@ -74,7 +74,7 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground">{rating.reviewCount} reviews</p>
               </>
             ) : (
-              <p className="text-3xl font-bold">{rating ? '—' : '—'}</p>
+              <p className="text-3xl font-bold">—</p>
             )}
             {rating && rating.reviewCount === 0 && <p className="text-sm text-muted-foreground">No ratings yet</p>}
           </CardContent>

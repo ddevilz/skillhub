@@ -141,13 +141,17 @@ function PostDetail({ postId, onBack, onDeleted }) {
         {comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet.</p>}
 
         <form onSubmit={addComment} className="space-y-2">
-          <textarea
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            rows={2}
-            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="Add a comment..."
-          />
+          <div className="space-y-2">
+            <Label htmlFor="comment-text">Add a comment</Label>
+            <textarea
+              id="comment-text"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              rows={2}
+              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Add a comment..."
+            />
+          </div>
           <Button type="submit" size="sm" disabled={!commentText.trim()}>Comment</Button>
         </form>
       </div>
@@ -248,7 +252,16 @@ export default function Forum() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Forum</h1>
-        <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <Dialog
+          open={newOpen}
+          onOpenChange={(open) => {
+            setNewOpen(open);
+            if (!open) {
+              setNewForm({ categoryId: '', title: '', content: '' });
+              setNewError('');
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <Button>New Post</Button>
           </DialogTrigger>
@@ -305,6 +318,7 @@ export default function Forum() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Search posts..."
+          aria-label="Search posts"
         />
         <Button type="submit" variant="outline">Search</Button>
       </form>

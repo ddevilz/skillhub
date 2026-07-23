@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
+import { useAuth } from '../auth/AuthContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,11 +17,17 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
-function PostRow({ p }) {
+function PostRow({ p, onSelect }) {
   return (
     <Card>
       <CardContent className="space-y-1 py-4">
-        <p className="font-medium">{p.title}</p>
+        <button
+          type="button"
+          onClick={() => onSelect(p.id)}
+          className="font-medium underline-offset-4 hover:underline text-left"
+        >
+          {p.title}
+        </button>
         <p className="text-sm text-muted-foreground">
           by {p.authorName} · {p.createdDate}
         </p>
@@ -33,6 +40,121 @@ function PostRow({ p }) {
   );
 }
 
+function PostDetail({ postId, onBack, onDeleted }) {
+  const { user } = useAuth();
+  const [post, setPost] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [upvotedPostIds, setUpvotedPostIds] = useState(new Set());
+  const [commentText, setCommentText] = useState('');
+  const [error, setError] = useState('');
+
+  function loadComments() {
+    api.get(`/forum/posts/${postId}/comments`).then((res) => setComments(res.data)).catch(() => {});
+  }
+
+  useEffect(() => {
+    api.get(`/forum/posts/${postId}`).then((res) => setPost(res.data)).catch(() => {});
+    loadComments();
+  }, [postId]);
+
+  async function upvote() {
+    setError('');
+    try {
+      const res = await api.post(`/forum/posts/${postId}/upvote`);
+      setPost(res.data);
+      setUpvotedPostIds((prev) => new Set(prev).add(postId));
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not upvote');
+    }
+  }
+
+  async function deletePost() {
+    setError('');
+    try {
+      await api.delete(`/forum/posts/${postId}`);
+      onDeleted();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not delete post');
+    }
+  }
+
+  async function deleteComment(commentId) {
+    setError('');
+    try {
+      await api.delete(`/forum/comments/${commentId}`);
+      loadComments();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not delete comment');
+    }
+  }
+
+  async function addComment(e) {
+    e.preventDefault();
+    setError('');
+    try {
+      await api.post(`/forum/posts/${postId}/comments`, { commentText });
+      setCommentText('');
+      loadComments();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not add comment');
+    }
+  }
+
+  if (!post) return null;
+
+  return (
+    <div className="space-y-4">
+      <Button variant="ghost" size="sm" onClick={onBack}>Back to Forum</Button>
+      <Card>
+        <CardContent className="space-y-2 py-4">
+          <h2 className="text-xl font-semibold">{post.title}</h2>
+          <p className="text-sm text-muted-foreground">by {post.authorName} · {post.createdDate}</p>
+          <p>{post.content}</p>
+          <div className="flex gap-2 pt-2">
+            <Button size="sm" disabled={upvotedPostIds.has(postId)} onClick={upvote}>
+              {upvotedPostIds.has(postId) ? 'Upvoted' : `Upvote (${post.upvoteCount})`}
+            </Button>
+            {user && post.userId === user.id && (
+              <Button size="sm" variant="outline" onClick={deletePost}>Delete</Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+
+      <div className="space-y-3">
+        <h3 className="font-semibold">Comments</h3>
+        {comments.map((c) => (
+          <Card key={c.id}>
+            <CardContent className="flex items-center justify-between py-3">
+              <div>
+                <p className="text-sm">{c.commentText}</p>
+                <p className="text-xs text-muted-foreground">{c.authorName} · {c.createdDate}</p>
+              </div>
+              {user && c.userId === user.id && (
+                <Button size="sm" variant="ghost" onClick={() => deleteComment(c.id)}>Delete</Button>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+        {comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet.</p>}
+
+        <form onSubmit={addComment} className="space-y-2">
+          <textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            rows={2}
+            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            placeholder="Add a comment..."
+          />
+          <Button type="submit" size="sm" disabled={!commentText.trim()}>Comment</Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function Forum() {
   const [categories, setCategories] = useState([]);
   const [postsByCategory, setPostsByCategory] = useState({});
@@ -40,6 +162,7 @@ export default function Forum() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [selectedPostId, setSelectedPostId] = useState(null);
 
   useEffect(() => {
     api.get('/forum/categories').then((res) => {
@@ -98,6 +221,19 @@ export default function Forum() {
     } catch (err) {
       setNewError(err.response?.data?.message ?? 'Could not create post');
     }
+  }
+
+  if (selectedPostId) {
+    return (
+      <PostDetail
+        postId={selectedPostId}
+        onBack={() => setSelectedPostId(null)}
+        onDeleted={() => {
+          setSelectedPostId(null);
+          if (activeCategoryId) loadCategoryPosts(activeCategoryId);
+        }}
+      />
+    );
   }
 
   return (
@@ -171,7 +307,7 @@ export default function Forum() {
             <p className="text-sm text-muted-foreground">Search results for "{searchKeyword}"</p>
             <Button size="sm" variant="ghost" onClick={clearSearch}>Clear search</Button>
           </div>
-          {searchResults.map((p) => <PostRow key={p.id} p={p} />)}
+          {searchResults.map((p) => <PostRow key={p.id} p={p} onSelect={setSelectedPostId} />)}
           {searchResults.length === 0 && <p className="text-sm text-muted-foreground">No posts found.</p>}
         </div>
       ) : (
@@ -183,7 +319,7 @@ export default function Forum() {
           </TabsList>
           {categories.map((c) => (
             <TabsContent key={c.id} value={String(c.id)} className="space-y-3">
-              {(postsByCategory[c.id] ?? []).map((p) => <PostRow key={p.id} p={p} />)}
+              {(postsByCategory[c.id] ?? []).map((p) => <PostRow key={p.id} p={p} onSelect={setSelectedPostId} />)}
               {(postsByCategory[c.id] ?? []).length === 0 && (
                 <p className="text-sm text-muted-foreground">No posts yet in this category.</p>
               )}

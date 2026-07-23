@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 
@@ -23,6 +24,7 @@ function UsersTab() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [verifyTarget, setVerifyTarget] = useState(null);
   const [verifySkillId, setVerifySkillId] = useState('');
 
@@ -46,6 +48,7 @@ function UsersTab() {
 
   async function toggleStatus(u) {
     setError('');
+    setSuccessMessage('');
     try {
       await api.put(`/admin/users/${u.id}/status`, { active: !u.active });
       loadUsers();
@@ -58,14 +61,17 @@ function UsersTab() {
     setVerifyTarget(u);
     setVerifySkillId('');
     setError('');
+    setSuccessMessage('');
   }
 
   async function submitVerify(e) {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     try {
       await api.post(`/admin/users/${verifyTarget.id}/skills/${verifySkillId}/verify`);
       loadUsers();
+      setSuccessMessage('Verified badge granted.');
       setVerifyTarget(null);
     } catch (err) {
       setError(err.response?.data?.message ?? 'Could not grant verified badge');
@@ -79,9 +85,10 @@ function UsersTab() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name or email..."
+          aria-label="Search users"
         />
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); loadUsers(search, v); }}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-40" aria-label="Filter by status"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="active">Active</SelectItem>
@@ -92,6 +99,7 @@ function UsersTab() {
       </form>
 
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {successMessage && <p role="status" className="text-sm text-emerald-600">{successMessage}</p>}
 
       <div className="space-y-3">
         {users.map((u) => (
@@ -114,11 +122,12 @@ function UsersTab() {
         {users.length === 0 && <p className="text-sm text-muted-foreground">No users found.</p>}
       </div>
 
-      <Dialog open={verifyTarget != null} onOpenChange={(open) => !open && setVerifyTarget(null)}>
+      <Dialog open={verifyTarget != null} onOpenChange={(open) => { if (!open) { setVerifyTarget(null); setError(''); } }}>
         <DialogContent>
           <form onSubmit={submitVerify} className="space-y-4">
             <DialogHeader>
               <DialogTitle>Grant verified badge</DialogTitle>
+              <DialogDescription>Choose a skill to mark as verified for this user.</DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
               <Label htmlFor="verify-skill">Skill</Label>
@@ -208,6 +217,7 @@ function SkillsSection() {
             <form onSubmit={submit} className="space-y-4">
               <DialogHeader>
                 <DialogTitle>{editing ? 'Edit skill' : 'Add a skill'}</DialogTitle>
+                <DialogDescription>{editing ? 'Update this skill\'s details.' : 'Add a new skill to the catalog.'}</DialogDescription>
               </DialogHeader>
               <div className="space-y-2">
                 <Label htmlFor="skill-name">Name</Label>
@@ -315,6 +325,7 @@ function CategoriesSection() {
             <form onSubmit={submit} className="space-y-4">
               <DialogHeader>
                 <DialogTitle>{editing ? 'Edit category' : 'Add a category'}</DialogTitle>
+                <DialogDescription>{editing ? 'Update this category\'s details.' : 'Add a new forum category.'}</DialogDescription>
               </DialogHeader>
               <div className="space-y-2">
                 <Label htmlFor="category-name">Name</Label>

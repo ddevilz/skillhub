@@ -142,6 +142,225 @@ function UsersTab() {
   );
 }
 
+function SkillsSection() {
+  const [skills, setSkills] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ skillName: '', category: '', description: '' });
+  const [error, setError] = useState('');
+
+  function loadSkills() {
+    api.get('/skills').then((res) => setSkills(res.data)).catch(() => {});
+  }
+
+  useEffect(loadSkills, []);
+
+  function openCreate() {
+    setEditing(null);
+    setForm({ skillName: '', category: '', description: '' });
+    setError('');
+    setOpen(true);
+  }
+
+  function openEdit(s) {
+    setEditing(s);
+    setForm({ skillName: s.skillName, category: s.category, description: s.description ?? '' });
+    setError('');
+    setOpen(true);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    setError('');
+    const body = { skillName: form.skillName, category: form.category, description: form.description || undefined };
+    try {
+      if (editing) {
+        await api.put(`/admin/skills/${editing.id}`, body);
+      } else {
+        await api.post('/admin/skills', body);
+      }
+      setOpen(false);
+      loadSkills();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not save skill');
+    }
+  }
+
+  async function remove(s) {
+    setError('');
+    try {
+      await api.delete(`/admin/skills/${s.id}`);
+      loadSkills();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not delete skill');
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Skills</h2>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={openCreate}>Add Skill</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <form onSubmit={submit} className="space-y-4">
+              <DialogHeader>
+                <DialogTitle>{editing ? 'Edit skill' : 'Add a skill'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Label htmlFor="skill-name">Name</Label>
+                <Input id="skill-name" value={form.skillName} onChange={(e) => setForm({ ...form, skillName: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="skill-category">Category</Label>
+                <Input id="skill-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="skill-description">Description</Label>
+                <Input id="skill-description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={!form.skillName || !form.category}>{editing ? 'Save' : 'Add'}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      <div className="space-y-2">
+        {skills.map((s) => (
+          <Card key={s.id}>
+            <CardContent className="flex items-center justify-between py-3">
+              <div>
+                <p className="font-medium">{s.skillName}</p>
+                <p className="text-sm text-muted-foreground">{s.category}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => openEdit(s)}>Edit</Button>
+                <Button size="sm" variant="outline" onClick={() => remove(s)}>Delete</Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CategoriesSection() {
+  const [categories, setCategories] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ categoryName: '', description: '' });
+  const [error, setError] = useState('');
+
+  function loadCategories() {
+    api.get('/forum/categories').then((res) => setCategories(res.data)).catch(() => {});
+  }
+
+  useEffect(loadCategories, []);
+
+  function openCreate() {
+    setEditing(null);
+    setForm({ categoryName: '', description: '' });
+    setError('');
+    setOpen(true);
+  }
+
+  function openEdit(c) {
+    setEditing(c);
+    setForm({ categoryName: c.categoryName, description: c.description ?? '' });
+    setError('');
+    setOpen(true);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    setError('');
+    const body = { categoryName: form.categoryName, description: form.description || undefined };
+    try {
+      if (editing) {
+        await api.put(`/admin/forum/categories/${editing.id}`, body);
+      } else {
+        await api.post('/admin/forum/categories', body);
+      }
+      setOpen(false);
+      loadCategories();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not save category');
+    }
+  }
+
+  async function remove(c) {
+    setError('');
+    try {
+      await api.delete(`/admin/forum/categories/${c.id}`);
+      loadCategories();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not delete category');
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Forum Categories</h2>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={openCreate}>Add Category</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <form onSubmit={submit} className="space-y-4">
+              <DialogHeader>
+                <DialogTitle>{editing ? 'Edit category' : 'Add a category'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Label htmlFor="category-name">Name</Label>
+                <Input id="category-name" value={form.categoryName} onChange={(e) => setForm({ ...form, categoryName: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category-description">Description</Label>
+                <Input id="category-description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={!form.categoryName}>{editing ? 'Save' : 'Add'}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      <div className="space-y-2">
+        {categories.map((c) => (
+          <Card key={c.id}>
+            <CardContent className="flex items-center justify-between py-3">
+              <div>
+                <p className="font-medium">{c.categoryName}</p>
+                {c.description && <p className="text-sm text-muted-foreground">{c.description}</p>}
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => openEdit(c)}>Edit</Button>
+                <Button size="sm" variant="outline" onClick={() => remove(c)}>Delete</Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CatalogTab() {
+  return (
+    <div className="space-y-6">
+      <SkillsSection />
+      <CategoriesSection />
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user } = useAuth();
 
@@ -155,9 +374,13 @@ export default function Admin() {
       <Tabs defaultValue="users">
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="catalog">Catalog</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
           <UsersTab />
+        </TabsContent>
+        <TabsContent value="catalog">
+          <CatalogTab />
         </TabsContent>
       </Tabs>
     </div>

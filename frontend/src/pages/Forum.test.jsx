@@ -55,3 +55,43 @@ test('renders forum categories and posts for the active category', async () => {
   expect(screen.getByRole('button', { name: /upvote/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /back to forum/i })).toBeInTheDocument();
 });
+
+test('shows a Moderate Post button to an admin viewing someone else\'s post', async () => {
+  localStorage.setItem('token', 'test-token');
+
+  api.get.mockImplementation((url) => {
+    if (url === '/me') {
+      return Promise.resolve({ data: { id: 99, fullName: 'Admin User', email: 'admin@example.com', role: 'ADMIN' } });
+    }
+    if (url === '/forum/categories') {
+      return Promise.resolve({ data: [{ id: 1, categoryName: 'General', description: 'General chat' }] });
+    }
+    if (url === '/forum/categories/1/posts') {
+      return Promise.resolve({
+        data: [{ id: 5, categoryId: 1, userId: 2, authorName: 'Blake Mentor', title: 'Welcome thread', content: 'Say hi!', upvoteCount: 2, commentCount: 0, createdDate: '2026-07-01T09:00:00' }],
+      });
+    }
+    if (url === '/forum/posts/5') {
+      return Promise.resolve({ data: { id: 5, categoryId: 1, userId: 2, authorName: 'Blake Mentor', title: 'Welcome thread', content: 'Say hi!', upvoteCount: 2, commentCount: 0, createdDate: '2026-07-01T09:00:00' } });
+    }
+    if (url === '/forum/posts/5/comments') {
+      return Promise.resolve({ data: [] });
+    }
+    return Promise.reject(new Error('unexpected url ' + url));
+  });
+
+  render(
+    <AuthProvider>
+      <MemoryRouter>
+        <Forum />
+      </MemoryRouter>
+    </AuthProvider>
+  );
+
+  const user = userEvent.setup();
+  const postLink = await screen.findByRole('button', { name: /welcome thread/i });
+  await user.click(postLink);
+
+  expect(await screen.findByRole('button', { name: /moderate post/i })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument();
+});

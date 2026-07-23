@@ -74,6 +74,11 @@ export default function Sessions() {
   const [rescheduleForm, setRescheduleForm] = useState({ sessionDate: '', startTime: '', endTime: '' });
   const [rescheduleError, setRescheduleError] = useState('');
 
+  const [reviewedSessionIds, setReviewedSessionIds] = useState(new Set());
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ rating: '', comments: '' });
+  const [reviewError, setReviewError] = useState('');
+
   useEffect(() => {
     api.get('/matches').then((res) => setMatches(res.data.filter((m) => m.status === 'ACCEPTED'))).catch(() => {});
   }, []);
@@ -137,6 +142,27 @@ export default function Sessions() {
     }
   }
 
+  function openReview(s) {
+    setReviewTarget(s);
+    setReviewForm({ rating: '', comments: '' });
+    setReviewError('');
+  }
+
+  async function submitReview(e) {
+    e.preventDefault();
+    setReviewError('');
+    try {
+      await api.post(`/sessions/${reviewTarget.id}/review`, {
+        rating: Number(reviewForm.rating),
+        comments: reviewForm.comments || undefined,
+      });
+      setReviewedSessionIds((prev) => new Set(prev).add(reviewTarget.id));
+      setReviewTarget(null);
+    } catch (err) {
+      setReviewError(err.response?.data?.message ?? 'Could not submit review');
+    }
+  }
+
   async function runAction(sessionId, action) {
     setError('');
     try {
@@ -190,6 +216,16 @@ export default function Sessions() {
             {canComplete && <Button size="sm" onClick={() => runAction(s.id, 'complete')}>Complete</Button>}
             {canCancel && <Button size="sm" variant="outline" onClick={() => openReschedule(s)}>Reschedule</Button>}
             {canCancel && <Button size="sm" variant="outline" onClick={() => runAction(s.id, 'cancel')}>Cancel</Button>}
+            {s.status === 'COMPLETED' && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={reviewedSessionIds.has(s.id)}
+                onClick={() => openReview(s)}
+              >
+                {reviewedSessionIds.has(s.id) ? 'Reviewed' : 'Leave a Review'}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -435,6 +471,45 @@ export default function Sessions() {
             {rescheduleError && <p role="alert" className="text-sm text-destructive">{rescheduleError}</p>}
             <DialogFooter>
               <Button type="submit">Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reviewTarget != null} onOpenChange={(open) => !open && setReviewTarget(null)}>
+        <DialogContent>
+          <form onSubmit={submitReview} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle>Leave a review</DialogTitle>
+              <DialogDescription>Rate this session and optionally leave a comment.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="review-rating">Rating</Label>
+              <Select value={reviewForm.rating} onValueChange={(v) => setReviewForm({ ...reviewForm, rating: v })}>
+                <SelectTrigger id="review-rating"><SelectValue placeholder="Choose a rating" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 - Poor</SelectItem>
+                  <SelectItem value="2">2 - Fair</SelectItem>
+                  <SelectItem value="3">3 - Good</SelectItem>
+                  <SelectItem value="4">4 - Very good</SelectItem>
+                  <SelectItem value="5">5 - Excellent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="review-comments">Comments</Label>
+              <textarea
+                id="review-comments"
+                value={reviewForm.comments}
+                onChange={(e) => setReviewForm({ ...reviewForm, comments: e.target.value })}
+                rows={3}
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Optional"
+              />
+            </div>
+            {reviewError && <p role="alert" className="text-sm text-destructive">{reviewError}</p>}
+            <DialogFooter>
+              <Button type="submit" disabled={!reviewForm.rating}>Submit Review</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Skills from './pages/Skills';
 import Matches from './pages/Matches';
 import Sessions from './pages/Sessions';
+import Forum from './pages/Forum';
 
 export default function App() {
   return (
@@ -52,6 +53,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppShell>
                   <Sessions />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/forum"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <Forum />
                 </AppShell>
               </ProtectedRoute>
             }

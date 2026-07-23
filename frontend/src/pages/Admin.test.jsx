@@ -98,3 +98,47 @@ test('renders the catalog tab with skills and categories, and opens an edit dial
   await user.click(editButtons[0]);
   expect(await screen.findByRole('button', { name: /save/i })).toBeInTheDocument();
 });
+
+test('renders the moderation tab with flagged reviews and moderated forum content', async () => {
+  localStorage.setItem('token', 'test-token');
+
+  api.get.mockImplementation((url) => {
+    if (url === '/me') {
+      return Promise.resolve({ data: { id: 1, fullName: 'Admin User', email: 'admin@example.com', role: 'ADMIN' } });
+    }
+    if (url === '/admin/users') return Promise.resolve({ data: [] });
+    if (url === '/skills') return Promise.resolve({ data: [] });
+    if (url === '/forum/categories') return Promise.resolve({ data: [] });
+    if (url === '/admin/reviews/flagged') {
+      return Promise.resolve({
+        data: [{ id: 9, sessionId: 10, reviewerUserId: 2, ratedUserId: 3, rating: 1, comments: 'Rude', flagged: true, createdDate: '2026-07-01T09:00:00' }],
+      });
+    }
+    if (url === '/users/2') return Promise.resolve({ data: { id: 2, fullName: 'Reviewer Two', city: null } });
+    if (url === '/users/3') return Promise.resolve({ data: { id: 3, fullName: 'Rated Three', city: null } });
+    if (url === '/admin/forum/posts/moderated') {
+      return Promise.resolve({ data: [{ id: 5, categoryId: 1, userId: 2, authorName: 'Reviewer Two', title: 'Bad post', content: 'x', upvoteCount: 0, commentCount: 0, createdDate: '2026-07-01T09:00:00' }] });
+    }
+    if (url === '/admin/forum/comments/moderated') {
+      return Promise.resolve({ data: [] });
+    }
+    return Promise.reject(new Error('unexpected url ' + url));
+  });
+
+  render(
+    <AuthProvider>
+      <MemoryRouter>
+        <Admin />
+      </MemoryRouter>
+    </AuthProvider>
+  );
+
+  const user = userEvent.setup();
+  const moderationTab = await screen.findByRole('tab', { name: /moderation/i });
+  await user.click(moderationTab);
+
+  expect(await screen.findByText('Reviewer Two')).toBeInTheDocument();
+  expect(screen.getByText('Rated Three')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /unflag/i })).toBeInTheDocument();
+  expect(screen.getByText('Bad post')).toBeInTheDocument();
+});

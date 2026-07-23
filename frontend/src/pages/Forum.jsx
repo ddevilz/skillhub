@@ -88,6 +88,26 @@ function PostDetail({ postId, onBack, onDeleted }) {
     }
   }
 
+  async function moderatePost() {
+    setError('');
+    try {
+      await api.put(`/admin/forum/posts/${postId}/moderate`);
+      onBack();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not moderate post');
+    }
+  }
+
+  async function moderateComment(commentId) {
+    setError('');
+    try {
+      await api.put(`/admin/forum/comments/${commentId}/moderate`);
+      loadComments();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not moderate comment');
+    }
+  }
+
   async function addComment(e) {
     e.preventDefault();
     setError('');
@@ -117,6 +137,9 @@ function PostDetail({ postId, onBack, onDeleted }) {
             {user && post.userId === user.id && (
               <Button size="sm" variant="outline" onClick={deletePost}>Delete</Button>
             )}
+            {user && user.role === 'ADMIN' && (
+              <Button size="sm" variant="outline" onClick={moderatePost}>Moderate Post</Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -134,6 +157,9 @@ function PostDetail({ postId, onBack, onDeleted }) {
               </div>
               {user && c.userId === user.id && (
                 <Button size="sm" variant="ghost" onClick={() => deleteComment(c.id)}>Delete</Button>
+              )}
+              {user && user.role === 'ADMIN' && (
+                <Button size="sm" variant="ghost" onClick={() => moderateComment(c.id)}>Moderate</Button>
               )}
             </CardContent>
           </Card>

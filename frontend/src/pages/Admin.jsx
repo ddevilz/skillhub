@@ -361,6 +361,144 @@ function CatalogTab() {
   );
 }
 
+function ModerationTab() {
+  const { user } = useAuth();
+  const [reviews, setReviews] = useState([]);
+  const [profiles, setProfiles] = useState({});
+  const [posts, setPosts] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [error, setError] = useState('');
+
+  function loadFlaggedReviews() {
+    api.get('/admin/reviews/flagged').then((res) => setReviews(res.data)).catch(() => {});
+  }
+  function loadModeratedPosts() {
+    api.get('/admin/forum/posts/moderated').then((res) => setPosts(res.data)).catch(() => {});
+  }
+  function loadModeratedComments() {
+    api.get('/admin/forum/comments/moderated').then((res) => setComments(res.data)).catch(() => {});
+  }
+
+  useEffect(() => {
+    loadFlaggedReviews();
+    loadModeratedPosts();
+    loadModeratedComments();
+  }, []);
+
+  useEffect(() => {
+    const ids = new Set();
+    reviews.forEach((r) => {
+      if (!(r.reviewerUserId in profiles)) ids.add(r.reviewerUserId);
+      if (!(r.ratedUserId in profiles)) ids.add(r.ratedUserId);
+    });
+    ids.forEach((id) => {
+      api.get(`/users/${id}`).then((res) => {
+        setProfiles((prev) => ({ ...prev, [id]: res.data }));
+      }).catch(() => {});
+    });
+  }, [reviews]);
+
+  async function unflag(r) {
+    setError('');
+    try {
+      await api.put(`/admin/reviews/${r.id}/unflag`);
+      loadFlaggedReviews();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not unflag review');
+    }
+  }
+
+  async function deleteReview(r) {
+    setError('');
+    try {
+      await api.delete(`/admin/reviews/${r.id}`);
+      loadFlaggedReviews();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not delete review');
+    }
+  }
+
+  async function deletePost(p) {
+    setError('');
+    try {
+      await api.delete(`/admin/forum/posts/${p.id}`);
+      loadModeratedPosts();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not delete post');
+    }
+  }
+
+  async function deleteComment(c) {
+    setError('');
+    try {
+      await api.delete(`/admin/forum/comments/${c.id}`);
+      loadModeratedComments();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not delete comment');
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Flagged Reviews</h2>
+        {reviews.map((r) => (
+          <Card key={r.id}>
+            <CardContent className="flex items-center justify-between py-3">
+              <div>
+                <p className="text-sm">
+                  <span>{profiles[r.reviewerUserId]?.fullName ?? `User #${r.reviewerUserId}`}</span> rated{' '}
+                  <span>{profiles[r.ratedUserId]?.fullName ?? `User #${r.ratedUserId}`}</span> {r.rating}/5
+                </p>
+                {r.comments && <p className="text-sm text-muted-foreground">{r.comments}</p>}
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => unflag(r)}>Unflag</Button>
+                <Button size="sm" variant="outline" onClick={() => deleteReview(r)}>Delete</Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {reviews.length === 0 && <p className="text-sm text-muted-foreground">No flagged reviews.</p>}
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Moderated Posts</h2>
+        {posts.map((p) => (
+          <Card key={p.id}>
+            <CardContent className="flex items-center justify-between py-3">
+              <div>
+                <p className="font-medium">{p.title}</p>
+                <p className="text-sm text-muted-foreground">by {p.authorName}</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => deletePost(p)}>Delete</Button>
+            </CardContent>
+          </Card>
+        ))}
+        {posts.length === 0 && <p className="text-sm text-muted-foreground">No moderated posts.</p>}
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Moderated Comments</h2>
+        {comments.map((c) => (
+          <Card key={c.id}>
+            <CardContent className="flex items-center justify-between py-3">
+              <div>
+                <p className="text-sm">{c.commentText}</p>
+                <p className="text-sm text-muted-foreground">by {c.authorName}</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => deleteComment(c)}>Delete</Button>
+            </CardContent>
+          </Card>
+        ))}
+        {comments.length === 0 && <p className="text-sm text-muted-foreground">No moderated comments.</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user } = useAuth();
 
@@ -375,12 +513,16 @@ export default function Admin() {
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="catalog">Catalog</TabsTrigger>
+          <TabsTrigger value="moderation">Moderation</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
           <UsersTab />
         </TabsContent>
         <TabsContent value="catalog">
           <CatalogTab />
+        </TabsContent>
+        <TabsContent value="moderation">
+          <ModerationTab />
         </TabsContent>
       </Tabs>
     </div>

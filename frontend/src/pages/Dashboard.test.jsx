@@ -13,6 +13,8 @@ test('renders credits, upcoming sessions, and unread notification counts', async
     if (url === '/me/credits') return Promise.resolve({ data: { totalCredits: 12, creditsEarned: 3, creditsSpent: 1 } });
     if (url === '/sessions') return Promise.resolve({ data: [{ id: 1 }, { id: 2 }] });
     if (url === '/notifications/unread-count') return Promise.resolve({ data: { count: 4 } });
+    if (url === '/users/1/rating') return Promise.resolve({ data: { averageRating: 4.5, reviewCount: 3 } });
+    if (url === '/users/1/badges') return Promise.resolve({ data: [{ id: 1, skillId: 4, skillName: 'Python', badgeType: 'INTERMEDIATE', awardedDate: '2026-07-01T09:00:00' }] });
     return Promise.reject(new Error('unexpected url ' + url));
   });
 
@@ -28,4 +30,6 @@ test('renders credits, upcoming sessions, and unread notification counts', async
   expect(screen.getByText('12')).toBeInTheDocument();
   expect(screen.getByText('2')).toBeInTheDocument();
   expect(screen.getByText('4')).toBeInTheDocument();
+  expect(await screen.findByText('4.5')).toBeInTheDocument();
+  expect(screen.getByText(/python/i)).toBeInTheDocument();
 });

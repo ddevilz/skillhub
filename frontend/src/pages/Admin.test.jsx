@@ -142,3 +142,52 @@ test('renders the moderation tab with flagged reviews and moderated forum conten
   expect(screen.getByRole('button', { name: /unflag/i })).toBeInTheDocument();
   expect(screen.getByText('Bad post')).toBeInTheDocument();
 });
+
+test('renders the reports tab with all five reports', async () => {
+  localStorage.setItem('token', 'test-token');
+
+  api.get.mockImplementation((url) => {
+    if (url === '/me') {
+      return Promise.resolve({ data: { id: 1, fullName: 'Admin User', email: 'admin@example.com', role: 'ADMIN' } });
+    }
+    if (url === '/admin/users') return Promise.resolve({ data: [] });
+    if (url === '/skills') return Promise.resolve({ data: [] });
+    if (url === '/forum/categories') return Promise.resolve({ data: [] });
+    if (url === '/admin/reviews/flagged') return Promise.resolve({ data: [] });
+    if (url === '/admin/forum/posts/moderated') return Promise.resolve({ data: [] });
+    if (url === '/admin/forum/comments/moderated') return Promise.resolve({ data: [] });
+    if (url === '/admin/reports/users-over-time') {
+      return Promise.resolve({ data: [{ date: '2026-07-01', count: 2 }] });
+    }
+    if (url === '/admin/reports/popular-skills') {
+      return Promise.resolve({ data: [{ skillId: 4, skillName: 'Python', count: 5 }] });
+    }
+    if (url === '/admin/reports/session-stats') {
+      return Promise.resolve({ data: { pending: 1, confirmed: 2, completed: 3, cancelled: 0 } });
+    }
+    if (url === '/admin/reports/top-mentors') {
+      return Promise.resolve({ data: [{ userId: 2, fullName: 'Blake Mentor', avgRating: 5.0, reviewCount: 1 }] });
+    }
+    if (url === '/admin/reports/active-categories') {
+      return Promise.resolve({ data: [{ categoryId: 1, categoryName: 'General Discussion', postCount: 2 }] });
+    }
+    return Promise.reject(new Error('unexpected url ' + url));
+  });
+
+  render(
+    <AuthProvider>
+      <MemoryRouter>
+        <Admin />
+      </MemoryRouter>
+    </AuthProvider>
+  );
+
+  const user = userEvent.setup();
+  const reportsTab = await screen.findByRole('tab', { name: /reports/i });
+  await user.click(reportsTab);
+
+  expect(await screen.findByText('Blake Mentor')).toBeInTheDocument();
+  expect(screen.getByText('General Discussion')).toBeInTheDocument();
+  expect(screen.getAllByText('Python').length).toBeGreaterThan(0);
+  expect(screen.getByText('3')).toBeInTheDocument();
+});

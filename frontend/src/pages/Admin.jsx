@@ -499,6 +499,89 @@ function ModerationTab() {
   );
 }
 
+function ReportsTab() {
+  const [usersOverTime, setUsersOverTime] = useState([]);
+  const [popularSkills, setPopularSkills] = useState([]);
+  const [sessionStats, setSessionStats] = useState(null);
+  const [topMentors, setTopMentors] = useState([]);
+  const [activeCategories, setActiveCategories] = useState([]);
+
+  useEffect(() => {
+    api.get('/admin/reports/users-over-time').then((res) => setUsersOverTime(res.data)).catch(() => {});
+    api.get('/admin/reports/popular-skills').then((res) => setPopularSkills(res.data)).catch(() => {});
+    api.get('/admin/reports/session-stats').then((res) => setSessionStats(res.data)).catch(() => {});
+    api.get('/admin/reports/top-mentors').then((res) => setTopMentors(res.data)).catch(() => {});
+    api.get('/admin/reports/active-categories').then((res) => setActiveCategories(res.data)).catch(() => {});
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Session Stats</h2>
+        <div className="grid gap-4 sm:grid-cols-4">
+          {[
+            ['Pending', sessionStats?.pending],
+            ['Confirmed', sessionStats?.confirmed],
+            ['Completed', sessionStats?.completed],
+            ['Cancelled', sessionStats?.cancelled],
+          ].map(([label, value]) => (
+            <Card key={label}>
+              <CardContent className="py-4">
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="text-3xl font-bold">{value ?? '—'}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Users Over Time</h2>
+        {usersOverTime.map((d) => (
+          <div key={d.date} className="flex justify-between border-b py-1 text-sm">
+            <span>{d.date}</span>
+            <span>{d.count}</span>
+          </div>
+        ))}
+        {usersOverTime.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Popular Skills</h2>
+        {popularSkills.map((s) => (
+          <div key={s.skillId} className="flex justify-between border-b py-1 text-sm">
+            <span>{s.skillName}</span>
+            <span>{s.count}</span>
+          </div>
+        ))}
+        {popularSkills.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Top Mentors</h2>
+        {topMentors.map((m) => (
+          <div key={m.userId} className="flex justify-between border-b py-1 text-sm">
+            <span>{m.fullName}</span>
+            <span>{m.avgRating.toFixed(1)} ({m.reviewCount})</span>
+          </div>
+        ))}
+        {topMentors.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Active Categories</h2>
+        {activeCategories.map((c) => (
+          <div key={c.categoryId} className="flex justify-between border-b py-1 text-sm">
+            <span>{c.categoryName}</span>
+            <span>{c.postCount} posts</span>
+          </div>
+        ))}
+        {activeCategories.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user } = useAuth();
 
@@ -514,6 +597,7 @@ export default function Admin() {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="catalog">Catalog</TabsTrigger>
           <TabsTrigger value="moderation">Moderation</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
           <UsersTab />
@@ -523,6 +607,9 @@ export default function Admin() {
         </TabsContent>
         <TabsContent value="moderation">
           <ModerationTab />
+        </TabsContent>
+        <TabsContent value="reports">
+          <ReportsTab />
         </TabsContent>
       </Tabs>
     </div>

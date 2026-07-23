@@ -65,6 +65,7 @@ function UsersTab() {
     setError('');
     try {
       await api.post(`/admin/users/${verifyTarget.id}/skills/${verifySkillId}/verify`);
+      loadUsers();
       setVerifyTarget(null);
     } catch (err) {
       setError(err.response?.data?.message ?? 'Could not grant verified badge');
@@ -98,7 +99,7 @@ function UsersTab() {
             <CardContent className="flex items-center justify-between py-4">
               <div>
                 <p className="font-medium">{u.fullName}</p>
-                <p className="text-sm text-muted-foreground">{u.email} · {u.city ?? 'No city'} · {u.role}</p>
+                <p className="text-sm text-muted-foreground">{u.email} · {u.city ?? 'No city'} · {u.role} · Joined {u.createdDate}</p>
                 <Badge variant={u.active ? 'default' : 'destructive'}>{u.active ? 'Active' : 'Inactive'}</Badge>
               </div>
               <div className="flex gap-2">
@@ -130,6 +131,7 @@ function UsersTab() {
                 </SelectContent>
               </Select>
             </div>
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <DialogFooter>
               <Button type="submit" disabled={!verifySkillId}>Grant</Button>
             </DialogFooter>
